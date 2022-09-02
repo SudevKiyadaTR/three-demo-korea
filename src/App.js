@@ -122,7 +122,7 @@ class App {
     // Load a glTF resource
     loader.load(
         // resource URL
-        'models/earth.glb',
+        './models/earth.glb',
         // called when the resource is loaded
         function ( gltf ) {
 
@@ -158,7 +158,7 @@ class App {
     // Load a glTF resource
     loader.load(
         // resource URL
-        'models/iss.glb',
+        './models/iss.glb',
         // called when the resource is loaded
         function ( gltf ) {
 
@@ -186,7 +186,7 @@ class App {
     // Load a glTF resource
     loader.load(
         // resource URL
-        'models/land.glb',
+        './models/land.glb',
         // called when the resource is loaded
         function ( gltf ) {
 
