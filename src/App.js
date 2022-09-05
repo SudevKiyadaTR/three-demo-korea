@@ -438,7 +438,7 @@ function skyColorTransition(dist) {
 function renderCamera(n) {
 
     if((currentPosition < (0.1 * points.length)) || (currentPosition > 0.9 * points.length))
-        incrementer = 5 * n;
+        incrementer = 1 * n;
     else
         incrementer = 5 * n;
 
