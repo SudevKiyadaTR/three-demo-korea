@@ -238,32 +238,32 @@ class App {
     );
 
     // Load a glTF resource
-    loader.load(
-        // resource URL
-        '../models/land.glb',
-        // called when the resource is loaded
-        function ( gltf ) {
+    // loader.load(
+    //     // resource URL
+    //     '../models/land.glb',
+    //     // called when the resource is loaded
+    //     function ( gltf ) {
 
-            land = gltf.scene;
+    //         land = gltf.scene;
 
-            land.position.set(0, 0, 0);
-            land.scale.set(1, 1, 1);
-            scene.add( land );
+    //         land.position.set(0, 0, 0);
+    //         land.scale.set(1, 1, 1);
+    //         scene.add( land );
 
-        },
-        // called while loading is progressing
-        function ( xhr ) {
+    //     },
+    //     // called while loading is progressing
+    //     function ( xhr ) {
 
-            // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+    //         // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
 
-        },
-        // called when loading has errors
-        function ( error ) {
+    //     },
+    //     // called when loading has errors
+    //     function ( error ) {
 
-            console.log( 'An error happened' );
+    //         console.log( 'An error happened' );
 
-        }
-    );
+    //     }
+    // );
 
     // Load a glTF resource
     loader.load(
