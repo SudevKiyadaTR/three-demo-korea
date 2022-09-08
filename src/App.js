@@ -14,7 +14,8 @@ const clipPosition = new THREE.Vector3();
 const postprocessing = { enabled: true };
 let scene, camera, renderer;
 let land, earth, sun, composer, controls, missile;
-let lineCurve, lineGeometry, parent, splineCamera, cameraHelper, cameraEye;
+let lineCurve, lineGeometry, parent, splineCamera, cameraHelper, cameraEye, birdViewCamera;
+let flagDefaultCamera = true, flagBirdEyeView = false, flagVerticalCamera = false;
 let points = [];
 let helper;
 let incrementer = 1;
@@ -24,6 +25,7 @@ let materialDepth = new THREE.MeshDepthMaterial();
 let q = new THREE.Quaternion();
 let tubeGeometry, tubeMesh;
 let matcapMat;
+let renderPass, effectPass, godraysEffect;
 
 const direction = new THREE.Vector3();
 const binormal = new THREE.Vector3();
@@ -52,7 +54,7 @@ const godrayRenderTargetResolutionMultiplier = 1.0 / 4.0;
 
 
 const PARAMS = {
-    offset: 0.54,
+    offset: 0.12,
     lookAhead: false,
     earthColor: 0x030303
   };
@@ -61,11 +63,45 @@ const pane = new Tweakpane.Pane();
 
 pane.addInput(PARAMS, 'offset', {
     min: 0,
-    max: 50,
+    max: 5,
     step: 0.01
 });
 
 pane.addInput(PARAMS, 'lookAhead');
+
+const defaultBtn = pane.addButton({
+    title: 'Default Camera'
+});
+  
+defaultBtn.on('click', () => {
+    flagDefaultCamera = true;
+    flagVerticalCamera = false;
+    flagBirdEyeView = false;
+
+    addComposer(splineCamera);
+});
+
+const verticalBtn = pane.addButton({
+    title: 'Vertical Camera'
+});
+  
+verticalBtn.on('click', () => {
+    flagDefaultCamera = false;
+    flagVerticalCamera = true;
+    flagBirdEyeView = false;
+});
+
+
+const birdViewBtn = pane.addButton({
+    title: 'BirdEyeView'
+});
+  
+birdViewBtn.on('click', () => {
+    flagDefaultCamera = false;
+    flagVerticalCamera = false;
+    flagBirdEyeView = true;
+    addComposer(birdViewCamera);
+});
 
 pane.addInput(PARAMS, 'earthColor', {
     view: 'color',
@@ -122,6 +158,9 @@ class App {
 
     splineCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.01, 151000 );
     scene.add(splineCamera);
+
+    birdViewCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.01, 151000 );
+    scene.add(birdViewCamera);
 
     // Generate material
     const lineMaterial = new THREE.LineBasicMaterial( {
@@ -279,7 +318,7 @@ class App {
             });
 
             missile.position.set(0, 0, 0);
-            missile.scale.set(1, 1, 1);
+            missile.scale.set(0.2, 0.2, 0.2);
             scene.add( missile );
 
         },
@@ -372,18 +411,18 @@ class App {
     scene.envmap
     });
 
-    controls = new OrbitControls( camera, renderer.domElement );
-    controls.enablePan = false;
-    controls.enableZoom = false;
-    controls.maxDistance = 1200;
-    controls.autoRotate = false;
-    controls.update();
+    // controls = new OrbitControls( camera, renderer.domElement );
+    // controls.enablePan = false;
+    // controls.enableZoom = false;
+    // controls.maxDistance = 1200;
+    // controls.autoRotate = false;
+    // controls.update();
 
     // controls = new FirstPersonControls( camera);
     // controls.lookSpeed = 0.05;
     // controls.movementSpeed = 0;
 
-    let godraysEffect = new POSTPROCESSING.GodRaysEffect(splineCamera, circle,{
+    godraysEffect = new POSTPROCESSING.GodRaysEffect(splineCamera, circle,{
         resolutionScale: 1,
         density: 0.9,
         decay: 0.95,
@@ -391,15 +430,25 @@ class App {
         samples: 300
     });
 
-    let renderPass = new POSTPROCESSING.RenderPass(scene, splineCamera);
-    let effectPass = new POSTPROCESSING.EffectPass(splineCamera, godraysEffect);
+        renderPass = new POSTPROCESSING.RenderPass(scene, splineCamera);
+        effectPass = new POSTPROCESSING.EffectPass(splineCamera, godraysEffect);
+        effectPass.renderToScreen = true;
+
+        composer = new POSTPROCESSING.EffectComposer(renderer);
+        composer.addPass(renderPass);
+        composer.addPass(effectPass);
+	}
+
+}
+
+function addComposer(cam) {
+    renderPass = new POSTPROCESSING.RenderPass(scene, cam);
+    effectPass = new POSTPROCESSING.EffectPass(cam, godraysEffect);
     effectPass.renderToScreen = true;
 
     composer = new POSTPROCESSING.EffectComposer(renderer);
     composer.addPass(renderPass);
     composer.addPass(effectPass);
-	}
-
 }
 
 function onWindowResize() {
@@ -412,14 +461,9 @@ function onWindowResize() {
 }
 
 function animate() {
-    // composer.render(0.1);
-    controls.update();
+    // controls.update();
     requestAnimationFrame(animate);
     render();
-
-    // controls.update(clock.getDelta());
-
-    // renderCamera(1);
 
     // let dist = land.position.distanceTo(splineCamera.position);
     // skyColorTransition(dist);
@@ -468,7 +512,7 @@ function render() {
 
     tubeGeometry.parameters.path.getPointAt( t, position );
     position.multiplyScalar( 1 );
-    tubeGeometry.parameters.path.getPointAt( t + 0.005, missilePosition );
+    tubeGeometry.parameters.path.getPointAt( t + 0.001, missilePosition );
     missilePosition.multiplyScalar(1);
 
     // interpolation
@@ -486,7 +530,7 @@ function render() {
     missileBinormal.multiplyScalar( pickt - missileNext ).add( tubeGeometry.binormals[ missileNext ] );
 
     tubeGeometry.parameters.path.getTangentAt( t, direction );
-    tubeGeometry.parameters.path.getTangentAt( t + 0.005, missileDirection );
+    tubeGeometry.parameters.path.getTangentAt( t + 0.001, missileDirection );
     const offset = PARAMS.offset;
 
     normal.copy( binormal ).cross( direction );
@@ -499,28 +543,31 @@ function render() {
 
     splineCamera.position.copy( position );
     missile.position.copy(missilePosition);
+    birdViewCamera.position.copy(position);
 
     // using arclength for stablization in look ahead
 
     tubeGeometry.parameters.path.getPointAt( ( t + 30 / tubeGeometry.parameters.path.getLength() ) % 1, lookAt );
     lookAt.multiplyScalar( 1 );
 
-    tubeGeometry.parameters.path.getPointAt( ( t + 0.005 + 30 / tubeGeometry.parameters.path.getLength() ) % 1, missileLookAt );
+    tubeGeometry.parameters.path.getPointAt( ( t + 0.001 + 30 / tubeGeometry.parameters.path.getLength() ) % 1, missileLookAt );
     missileLookAt.multiplyScalar( 1 );
 
     // camera orientation 2 - up orientation via normal
 
     if ( !PARAMS.lookAhead ) lookAt.copy( position ).add( direction );
-    splineCamera.matrix.lookAt( splineCamera.position, lookAt, normal );
+    if ( flagVerticalCamera )
+        splineCamera.matrix.lookAt( splineCamera.position, tubeGeometry.parameters.path.getPointAt( t + 0.001), normal );
+    else
+        splineCamera.matrix.lookAt( splineCamera.position, lookAt, normal );
+        
+    birdViewCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt( t + 0.001), new THREE.Vector3(0, 1, 0));
+    birdViewCamera.quaternion.setFromRotationMatrix( birdViewCamera.matrix );
     splineCamera.quaternion.setFromRotationMatrix( splineCamera.matrix );
     missile.matrix.lookAt( missile.position, missileLookAt, missileNormal );
     missile.quaternion.setFromRotationMatrix( missile.matrix );
 
-    // renderer.render( scene, PARAMS.animation ? splineCamera : camera );
     composer.render(0.01);
-
-    // console.log(splineCamera.position, missile.position);
-    // console.log("--------------------------------");
 }
 
 
