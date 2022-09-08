@@ -77,8 +77,6 @@ defaultBtn.on('click', () => {
     flagDefaultCamera = true;
     flagVerticalCamera = false;
     flagBirdEyeView = false;
-
-    addComposer(splineCamera);
 });
 
 const verticalBtn = pane.addButton({
@@ -100,7 +98,6 @@ birdViewBtn.on('click', () => {
     flagDefaultCamera = false;
     flagVerticalCamera = false;
     flagBirdEyeView = true;
-    addComposer(birdViewCamera);
 });
 
 pane.addInput(PARAMS, 'earthColor', {
@@ -131,8 +128,8 @@ class App {
         color: 0x0000ff
     });
 
-    const point1 = [0, 0, 0]; // Point 1 coordinates
-    const point2 = [100, 0, 0]; // Point 2 coordinates
+    const point1 = [0, -5, 0]; // Point 1 coordinates
+    const point2 = [100, -5, 0]; // Point 2 coordinates
     const controlPoint = [0, 624, 0]; // Control point coordinates
 
     // Create a 3D quadratic Bezier curve
@@ -149,7 +146,7 @@ class App {
     lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
     // geometry.vertices = points; // Assign the point list obtained in the previous step to the vertices attribute of geometry
 
-    tubeGeometry = new THREE.TubeGeometry( lineCurve, 50, 1, 3, false );
+    tubeGeometry = new THREE.TubeGeometry( lineCurve, 100, 1, 3, false );
 
     tubeMesh = new THREE.Mesh( tubeGeometry, tubeMaterial );
     const wireframe = new THREE.Mesh( tubeGeometry, wireframeMaterial );
@@ -558,16 +555,18 @@ function render() {
     if ( !PARAMS.lookAhead ) lookAt.copy( position ).add( direction );
     if ( flagVerticalCamera )
         splineCamera.matrix.lookAt( splineCamera.position, tubeGeometry.parameters.path.getPointAt( t + 0.001), normal );
-    else
+    else if (flagDefaultCamera)
         splineCamera.matrix.lookAt( splineCamera.position, lookAt, normal );
-        
-    birdViewCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt( t + 0.001), new THREE.Vector3(0, 1, 0));
-    birdViewCamera.quaternion.setFromRotationMatrix( birdViewCamera.matrix );
+    else if (flagBirdEyeView)
+        splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt( t + 0.001), new THREE.Vector3(0, 1, 0));
+
     splineCamera.quaternion.setFromRotationMatrix( splineCamera.matrix );
     missile.matrix.lookAt( missile.position, missileLookAt, missileNormal );
     missile.quaternion.setFromRotationMatrix( missile.matrix );
 
     composer.render(0.01);
+
+    console.log(missile.position);
 }
 
 
