@@ -6,6 +6,7 @@ import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls.js';
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
 import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js';
+import { CurvePath } from 'three';
 
 const bgColor = 0x000000;
 const sunColor = 0xffee00;
@@ -27,6 +28,17 @@ let tubeGeometry, tubeMesh;
 let matcapMat;
 let renderPass, effectPass, godraysEffect;
 
+let iss;
+const up = new THREE.Vector3( 0, 1, 0 );
+const axis = new THREE.Vector3( );
+
+// missile childs
+let missileOrig;
+let missileBase, missileBaseTrajectory;
+let missileBaseR, missileBaseRTrajectory;
+let missileBaseL, missileBaseLTrajectory;
+let stageTwo, stageTwoTrajectory;
+
 const direction = new THREE.Vector3();
 const binormal = new THREE.Vector3();
 const normal = new THREE.Vector3();
@@ -43,6 +55,8 @@ const tubeMaterial = new THREE.MeshLambertMaterial( { color: 0xff00ff } );
 const wireframeMaterial = new THREE.MeshBasicMaterial( { color: 0x000000, opacity: 0.3, wireframe: true, transparent: true } );
 
 let clock = new THREE.Clock();
+let stageOneClock = new THREE.Clock();
+let stageTwoClock = new THREE.Clock();
 
 let d = 0;
 const skyColor = new THREE.Color(0x000000);
@@ -98,6 +112,14 @@ birdViewBtn.on('click', () => {
     flagDefaultCamera = false;
     flagVerticalCamera = false;
     flagBirdEyeView = true;
+});
+
+const restartBtn = pane.addButton({
+    title: 'Restart'
+});
+  
+restartBtn.on('click', () => {
+    reset();
 });
 
 pane.addInput(PARAMS, 'earthColor', {
@@ -180,14 +202,23 @@ class App {
 
     manager.onLoad = function ( ) {
         console.log( 'Loading complete!');
+        console.log(missile);
+        missile.name = "missile";
+        missileOrig = missile.clone();
+
+        console.log("Missile Cloone");
+        console.log(missileOrig);
+
+        clock.start();
+        
         animate();
 
-        window.onwheel = function(event) {
-            if(event.deltaY > 0)
-                renderCamera(1);
-            else
-                renderCamera(-1);
-        };
+        // window.onwheel = function(event) {
+        //     if(event.deltaY > 0)
+        //         renderCamera(1);
+        //     else
+        //         renderCamera(-1);
+        // };
 
 		// window.onmousemove = function(event) {
 		// 	let x = event.clientX;
@@ -252,7 +283,7 @@ class App {
         // called when the resource is loaded
         function ( gltf ) {
 
-            let iss = gltf.scene;
+            iss = gltf.scene;
 
             iss.scale.set(1, 1, 1);
             iss.position.set(0, 40, 20);
@@ -304,7 +335,7 @@ class App {
     // Load a glTF resource
     loader.load(
         // resource URL
-        '../models/missile2.glb',
+        '../models/hwasong_scratch.glb',
         // called when the resource is loaded
         function ( gltf ) {
 
@@ -315,7 +346,7 @@ class App {
             });
 
             missile.position.set(0, 0, 0);
-            missile.scale.set(0.2, 0.2, 0.2);
+            missile.scale.set(0.03, 0.03, 0.03);
             scene.add( missile );
 
         },
@@ -503,8 +534,8 @@ function render() {
 
     // animate camera along spline
 
-    const time = Date.now();
-    const looptime = 15 * 1000;
+    const time = clock.getElapsedTime();
+    const looptime = 20 * 1;
     const t = ( time % looptime ) / looptime;
 
     tubeGeometry.parameters.path.getPointAt( t, position );
@@ -564,9 +595,127 @@ function render() {
     missile.matrix.lookAt( missile.position, missileLookAt, missileNormal );
     missile.quaternion.setFromRotationMatrix( missile.matrix );
 
-    composer.render(0.01);
+    if(t > 0.25){
+        if(!missileBaseTrajectory){
+            jettisonStageOne(missile);
+        }
+        
+        renderStageOne();
+    }
 
-    console.log(missile.position);
+    if(t > 0.4){
+        if(!stageTwoTrajectory){
+            jettisonStageTwo(missile);
+        }
+        
+        renderStageTwo();
+    }
+
+    if(t > 0.98)
+        reset();
+
+    composer.render(0.01);
+}
+
+function renderStageOne() {
+    const time = stageOneClock.getElapsedTime();
+    const looptime = 2000 * 1;
+    const t = ( time ) / looptime;
+
+    let newPosition, tangent, radians;
+
+    if(t < 1) {
+        newPosition = missileBaseTrajectory.getPointAt(t);
+        tangent = missileBaseTrajectory.getTangent(t);
+        missileBase.position.copy(newPosition);
+        axis.crossVectors( up, tangent ).normalize();
+        radians = Math.acos( up.dot( tangent ) );
+        missileBase.quaternion.setFromAxisAngle( axis, radians );
+
+        newPosition = missileBaseRTrajectory.getPointAt(t);
+        tangent = missileBaseRTrajectory.getTangent(t);
+        missileBaseR.position.copy(newPosition);
+        axis.crossVectors( up, tangent ).normalize();
+        radians = Math.acos( up.dot( tangent ) );
+        missileBaseR.quaternion.setFromAxisAngle( axis, radians );
+
+        newPosition = missileBaseLTrajectory.getPointAt(t);
+        tangent = missileBaseLTrajectory.getTangent(t);
+        missileBaseL.position.copy(newPosition);
+        axis.crossVectors( up, tangent ).normalize();
+        radians = Math.acos( up.dot( tangent ) );
+        missileBaseL.quaternion.setFromAxisAngle( axis, radians );
+    }
+}
+
+function renderStageTwo() {
+    const time = stageTwoClock.getElapsedTime();
+    const looptime = 2000 * 1;
+    const t = ( time ) / looptime;
+
+    let newPosition, tangent, radians;
+
+    if(t < 1) {
+        newPosition = stageTwoTrajectory.getPointAt(t);
+        tangent = stageTwoTrajectory.getTangent(t);
+        stageTwo.position.copy(newPosition);
+        axis.crossVectors( up, tangent ).normalize();
+        radians = Math.acos( up.dot( tangent ) );
+        stageTwo.quaternion.setFromAxisAngle( axis, radians );
+    }
+}
+
+function jettisonStageOne(parentMissile) {
+    console.log("Jettison Stage One");
+    stageOneClock.start();
+
+    missileBase = parentMissile.children[0];
+    scene.attach(missileBase);
+
+    missileBaseR = parentMissile.children[parentMissile.children.length-2];
+    scene.attach(missileBaseR);
+    missileBaseR.rotateX(Math.PI / 2);
+
+    missileBaseL = parentMissile.children[parentMissile.children.length-1];
+    scene.attach(missileBaseL);
+    missileBaseL.rotateY(Math.PI / 2);
+
+    // create trajectory for jettison stage
+    missileBaseTrajectory = new THREE.CurvePath();
+    missileBaseTrajectory.add(new THREE.LineCurve3(missileBase.position, new THREE.Vector3(0, -25, 0)));
+    missileBaseRTrajectory = new THREE.CurvePath();
+    missileBaseRTrajectory.add(new THREE.LineCurve3(missileBaseR.position, new THREE.Vector3(10, -25, 0))); 
+    missileBaseLTrajectory = new THREE.CurvePath();
+    missileBaseLTrajectory.add(new THREE.LineCurve3(missileBaseL.position, new THREE.Vector3(-10, -25, 0))); 
+}
+
+function jettisonStageTwo(parentMissile) {
+    console.log("Jettison Stage Two");
+    stageTwoClock.start();
+
+    stageTwo = parentMissile.getObjectByName("stageTwo");
+    scene.attach(stageTwo);
+
+    // create trajectory for jettison stage
+    stageTwoTrajectory = new THREE.CurvePath();
+    stageTwoTrajectory.add(new THREE.LineCurve3(stageTwo.position, new THREE.Vector3(0, -25, 0)));
+}
+
+function reset() {
+    scene.remove(missile);
+    scene.remove(missileBase);
+    scene.remove(missileBaseR);
+    scene.remove(missileBaseL);
+    scene.remove(stageTwo);
+    missileBase = null;
+    missileBaseTrajectory = null;
+    missile = new THREE.Object3D();
+    missile = missileOrig.clone();
+    scene.add(missile);
+    clock.stop();
+    clock.start();
+    stageOneClock.stop();
+    stageTwoClock.stop();
 }
 
 
