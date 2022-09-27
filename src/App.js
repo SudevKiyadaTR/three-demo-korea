@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import * as POSTPROCESSING from 'postprocessing';
+import studio from '@theatre/studio';
+import {getProject, types, val} from '@theatre/core';
+import projectState from './state.json';
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
-import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js';
-import { FirstPersonControls } from 'three/examples/jsm/controls/FirstPersonControls.js';
-import { CurvePath } from 'three';
+import {FontLoader} from 'three/examples/jsm/loaders/FontLoader.js';
+import { RectAreaLightUniformsLib } from 'three/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
 const bgColor = 0x000000;
 const sunColor = 0xffee00;
@@ -28,16 +29,17 @@ let tubeGeometry, tubeMesh;
 let matcapMat;
 let renderPass, effectPass, godraysEffect;
 
+let trajectoryPath;
+
+const textGroup = new THREE.Group();
+
+let animatingCamera;
+
 let iss;
 const up = new THREE.Vector3(0, 1, 0);
 const axis = new THREE.Vector3();
 
-// missile childs
-let missileOrig;
-let missileBase, missileBaseTrajectory;
-let missileBaseR, missileBaseRTrajectory;
-let missileBaseL, missileBaseLTrajectory;
-let stageTwo, stageTwoTrajectory;
+let dummyCamera;
 
 const direction = new THREE.Vector3();
 const binormal = new THREE.Vector3();
@@ -66,6 +68,8 @@ const skyBlack = new THREE.Color(0x000000);
 // Use a smaller size for some of the god-ray render targets for better performance.
 const godrayRenderTargetResolutionMultiplier = 1.0 / 4.0;
 
+let project, sheet;
+
 
 const PARAMS = {
     offset: 0.12,
@@ -75,91 +79,119 @@ const PARAMS = {
 
 const pane = new Tweakpane.Pane();
 
-pane.addInput(PARAMS, 'offset', {
-    min: 0,
-    max: 5,
-    step: 0.01
-});
+function setupPane() {
+    pane.addInput(PARAMS, 'offset', {
+        min: 0,
+        max: 5,
+        step: 0.01
+    });
+    
+    pane.addInput(PARAMS, 'lookAhead');
+    
+    const defaultBtn = pane.addButton({
+        title: 'Default Camera'
+    });
+    
+    defaultBtn.on('click', () => {
+        flagDefaultCamera = true;
+        flagVerticalCamera = false;
+        flagBirdEyeView = false;
+    });
+    
+    const verticalBtn = pane.addButton({
+        title: 'Vertical Camera'
+    });
+    
+    verticalBtn.on('click', () => {
+        flagDefaultCamera = false;
+        flagVerticalCamera = true;
+        flagBirdEyeView = false;
+    });
+    
+    
+    const birdViewBtn = pane.addButton({
+        title: 'BirdEyeView'
+    });
+    
+    birdViewBtn.on('click', () => {
+        flagDefaultCamera = false;
+        flagVerticalCamera = false;
+        flagBirdEyeView = true;
+    });
+    
+    const restartBtn = pane.addButton({
+        title: 'Restart'
+    });
+    
+    restartBtn.on('click', () => {
+        reset();
+    });
+    
+    pane.addInput(PARAMS, 'earthColor', {
+        view: 'color',
+    }).on("change", (ev) => {
+        earth.material.color.setHex(PARAMS.earthColor);
+    });
+}
 
-pane.addInput(PARAMS, 'lookAhead');
-
-const defaultBtn = pane.addButton({
-    title: 'Default Camera'
-});
-
-defaultBtn.on('click', () => {
-    flagDefaultCamera = true;
-    flagVerticalCamera = false;
-    flagBirdEyeView = false;
-});
-
-const verticalBtn = pane.addButton({
-    title: 'Vertical Camera'
-});
-
-verticalBtn.on('click', () => {
-    flagDefaultCamera = false;
-    flagVerticalCamera = true;
-    flagBirdEyeView = false;
-});
-
-
-const birdViewBtn = pane.addButton({
-    title: 'BirdEyeView'
-});
-
-birdViewBtn.on('click', () => {
-    flagDefaultCamera = false;
-    flagVerticalCamera = false;
-    flagBirdEyeView = true;
-});
-
-const restartBtn = pane.addButton({
-    title: 'Restart'
-});
-
-restartBtn.on('click', () => {
-    reset();
-});
-
-pane.addInput(PARAMS, 'earthColor', {
-    view: 'color',
-}).on("change", (ev) => {
-    earth.material.color.setHex(PARAMS.earthColor);
-});
+// main function --------------------------------------------------------
 
 class App {
 
     init() {
-
+        setupPane();
+        if (import.meta.env.DEV) {
+            // studio.extend(extension);
+            studio.initialize();
+        }
+        project = getProject('THREE.js x Theatre.js', {state: projectState});
+        sheet = project.sheet('animated scene');
+        
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0x000000);
 
-        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.001, 151000);
+        let w = window.innerWidth, h = window.innerHeight;
 
-        camera.position.set(0, 0.01, 0);
+        camera = new THREE.PerspectiveCamera( 35, w / h, 1, 2000 );
 
-        const light = new THREE.AmbientLight(0xA0A0A0, 4); // soft white light
-        scene.add(light);
+        animatingCamera = new THREE.PerspectiveCamera( 35, w / h, 1, 2000 );
 
-        let directionalLight = new THREE.DirectionalLight(0x888888, 1);
-        directionalLight.position.set(0, 1, -1);
-        scene.add(directionalLight);
+        animatingCamera.position.set(0, 0, 0);
+        animatingCamera.rotation.set(0, 2, 1.3);
+        // cameraHelper = new THREE.CameraHelper( animatingCamera );
+        // scene.add( cameraHelper );
+
+        // const light = new THREE.AmbientLight(0xA0A0A0, 4); // soft white light
+        // scene.add(light);
+
+        // let directionalLight = new THREE.DirectionalLight(0x999999, 2);
+        // directionalLight.position.set(0, 1, 0);
+        // scene.add(directionalLight);
+
+        RectAreaLightUniformsLib.init();
+        const width = 1000;
+        const height = 500;
+        const intensity = 20;
+        const rectLight = new THREE.RectAreaLight( 0x999999, intensity,  width, height );
+        rectLight.position.set( 0, 1000, 0 );
+        rectLight.lookAt( 0, 0, 0 );
+        scene.add( rectLight );
+        // scene.add( new RectAreaLightHelper( rectLight ) );
 
         const material = new THREE.LineBasicMaterial({
             color: 0x0000ff
         });
 
-        const point1 = [0, -5, 0]; // Point 1 coordinates
-        const point2 = [100, -5, 0]; // Point 2 coordinates
-        const controlPoint = [0, 624, 0]; // Control point coordinates
+        const point1 = [-50, 0, 0]; // Point 1 coordinates
+        const point2 = [50, -5, 0]; // Point 2 coordinates
+        const controlPoint = [0, 624.8, 0]; // Control point coordinates
 
         // Create a 3D quadratic Bezier curve
-        lineCurve = new THREE.QuadraticBezierCurve3(
+        lineCurve = new THREE.CatmullRomCurve3([
             new THREE.Vector3(point1[0], point1[1], point1[2]),
             new THREE.Vector3(controlPoint[0], controlPoint[1], controlPoint[2]),
             new THREE.Vector3(point2[0], point2[1], point2[2])
-        );
+        ], false, 'chordal', 0.0);
 
         const divisions = 1000; // Number of segments of the curve
         points = lineCurve.getPoints(divisions); // Return the number of segments + 1 point, such as points The length is 31
@@ -168,7 +200,7 @@ class App {
         lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
         // geometry.vertices = points; // Assign the point list obtained in the previous step to the vertices attribute of geometry
 
-        tubeGeometry = new THREE.TubeGeometry(lineCurve, 100, 1, 3, false);
+        tubeGeometry = new THREE.TubeGeometry(lineCurve, 1000, 0.2, 3, false);
 
         tubeMesh = new THREE.Mesh(tubeGeometry, tubeMaterial);
         const wireframe = new THREE.Mesh(tubeGeometry, wireframeMaterial);
@@ -183,8 +215,8 @@ class App {
 
         // Generate material
         const lineMaterial = new THREE.LineBasicMaterial({
-            color: 0x444444,
-            linewidth: 10,
+            color: 0x111111,
+            linewidth: 1,
             linecap: 'round', //ignored by WebGLRenderer
             linejoin: 'round' //ignored by WebGLRenderer
         });
@@ -196,97 +228,21 @@ class App {
         // scene.environment = envmap;
 
         const manager = new THREE.LoadingManager();
-        manager.onStart = function (url, itemsLoaded, itemsTotal) {
-            console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
-        };
-
-        manager.onLoad = function () {
-            console.log('Loading complete!');
-            console.log(missile);
-            missile.name = "missile";
-            missileOrig = missile.clone();
-
-            console.log("Missile Cloone");
-            console.log(missileOrig);
-
-            clock.start();
-
-            animate();
-
-            // window.onwheel = function(event) {
-            //     if(event.deltaY > 0)
-            //         renderCamera(1);
-            //     else
-            //         renderCamera(-1);
-            // };
-
-            // window.onmousemove = function(event) {
-            // 	let x = event.clientX;
-            // 	let y = event.clientY;
-
-            // 	renderChange(x, y);
-            // }
-        };
-
-
-        manager.onProgress = function (url, itemsLoaded, itemsTotal) {
-            console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
-        };
-
-        manager.onError = function (url) {
-            console.log('There was an error loading ' + url);
-        };
 
         // Instantiate a loader
         const loader = new GLTFLoader(manager);
 
-        // Load a glTF resource
-        // loader.load(
-        //     // resource URL
-        //     '../models/earth.glb',
-        //     // called when the resource is loaded
-        //     function ( gltf ) {
-
-        //         earth = gltf.scene;
-
-        //         earth.scale.set(1, 1, 1);
-        //         earth.position.set(0, -1200/2, 0);
-        //         let earthPARAMS = {
-        //             x: 5.33,
-        //             y: 3.82,
-        //             z: 4.92
-        //         };
-        //         earth.rotation.set(earthPARAMS.x, earthPARAMS.y, earthPARAMS.z);
-        //         scene.add( earth );
-
-        //         earth.visible = false;
-
-        //     },
-        //     // called while loading is progressing
-        //     function ( xhr ) {
-
-        //         // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-
-        //     },
-        //     // called when loading has errors
-        //     function ( error ) {
-
-        //         console.log( 'An error happened' );
-
-        //     }
-        // );
-
-        // Load a glTF resource
+        // Load ISS
         loader.load(
             // resource URL
-            '../models/iss.glb',
+            '/models/iss.glb',
             // called when the resource is loaded
             function (gltf) {
 
                 iss = gltf.scene;
 
                 iss.scale.set(1, 1, 1);
-                iss.position.set(0, 40, 20);
+                iss.position.set(-40, 42, 0);
                 scene.add(iss);
 
             },
@@ -304,38 +260,10 @@ class App {
             }
         );
 
-        // Load a glTF resource
-        // loader.load(
-        //     // resource URL
-        //     '../models/land.glb',
-        //     // called when the resource is loaded
-        //     function ( gltf ) {
-
-        //         land = gltf.scene;
-
-        //         land.position.set(0, 0, 0);
-        //         land.scale.set(1, 1, 1);
-        //         scene.add( land );
-
-        //     },
-        //     // called while loading is progressing
-        //     function ( xhr ) {
-
-        //         // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-
-        //     },
-        //     // called when loading has errors
-        //     function ( error ) {
-
-        //         console.log( 'An error happened' );
-
-        //     }
-        // );
-
-        // Load a glTF resource
+        // Load Hwasong
         loader.load(
             // resource URL
-            '../models/hwasong_scratch.glb',
+            '/models/missile2.glb',
             // called when the resource is loaded
             function (gltf) {
 
@@ -346,7 +274,7 @@ class App {
                 });
 
                 missile.position.set(0, 0, 0);
-                missile.scale.set(0.03, 0.03, 0.03);
+                missile.scale.set(5.0, 5.0, 5.0);
                 scene.add(missile);
 
             },
@@ -364,12 +292,37 @@ class App {
             }
         );
 
+        manager.onStart = function (url, itemsLoaded, itemsTotal) {
+            // console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+        };
+
+        manager.onLoad = function () {
+            scene.add(textGroup);
+            theatre();
+
+            project.ready.then(() => {
+                console.log("project is ready");
+                clock.start();
+            sheet.sequence.play({ iterationCount: Infinity });
+            animate();
+        });
+        };
+
+
+        manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+            // console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+        };
+
+        manager.onError = function (url) {
+            console.log('There was an error loading ' + url);
+        };
+
         const texLoader = new THREE.TextureLoader();
 
         // load a resource
         texLoader.load(
             // resource URL
-            '../assets/yellow_matcap.png',
+            '/assets/yellow_matcap.png',
 
             // onLoad callback
             function (texture) {
@@ -392,18 +345,75 @@ class App {
             }
         );
 
-        let earthGeo = new THREE.SphereGeometry(600, 32, 24);
-        // let earthMat = new THREE.MeshBasicMaterial({color: 0xffccaa});
-        let earthMat = new THREE.MeshPhysicalMaterial({
-            color: PARAMS.earthColor,
-            roughness: 0.58,
-            metalness: 0.478,
-            reflectivity: 0.389
+        let earthTex;
+
+        const texture = Promise.all([texLoader.load( '/assets/2k_earth_daymap.jpeg'), texLoader.load('/assets/2k_earth_specular_map 1.jpg'), texLoader.load('/assets/elev_bump_8k.jpeg')], (resolve, reject) => {
+            resolve(texture);
+        }).then(result => {
+            // result in array of textures
+            let earthGeo = new THREE.SphereGeometry(637.1, 32, 24);
+            // let earthMat = new THREE.MeshBasicMaterial({color: 0xffccaa});
+            let earthMat = new THREE.MeshStandardMaterial({
+                color: 0x444444,
+                map: result[0],
+                roughness: 0.5,
+                bumpMap: result[2],
+                bumpScale: 3.0,
+                metalness: 0.3,
+                reflectivity: 0.5,
+                clearcoat: 0.0
+            });
+
+            earthMat.shading = THREE.SmoothShading;
+            earth = new THREE.Mesh(earthGeo, earthMat);
+            earth.position.set(0, -637.1, 0);
+            earth.rotation.set(-0.4282151898734179, 0.7, 0.19948101265822782);
+            scene.add(earth);
         });
-        earthMat.shading = THREE.SmoothShading;
-        earth = new THREE.Mesh(earthGeo, earthMat);
-        earth.position.set(0, -1200 / 2, 0);
-        scene.add(earth);
+
+        // load text objects
+        const fntLoader = new FontLoader();
+
+        fntLoader.load( '/assets/Knowledge Medium_Regular.json', function ( font ) {
+            generateText(font, "North Korea", 8, new THREE.Vector3(-50, 10, 0));
+            generateText(font, "Pyongyang", 3, new THREE.Vector3(-50, 3, 0));
+            generateText(font, "Japan", 8, new THREE.Vector3(40, 10, 50));
+            generateText(font, "Hokkaido", 3, new THREE.Vector3(100, 3, 0));
+            generateText(font, "International Space Station", 2, new THREE.Vector3(-30, 50, 0));
+        } );
+
+        // // load a resource
+        // texLoader.load(
+        //     // resource URL
+        //     '../assets/2k_earth_daymap.jpeg.jpeg',
+
+        //     // onLoad callback
+        //     function (texture) {
+        //         // in this example we create the material when the texture is loaded
+        //         earthTex = texture;
+        //         let earthGeo = new THREE.SphereGeometry(637.1, 32, 24);
+        //         // let earthMat = new THREE.MeshBasicMaterial({color: 0xffccaa});
+        //         let earthMat = new THREE.MeshPhysicalMaterial({
+        //             map: earthTex,
+        //             roughness: 0.48,
+        //             metalness: 0.478,
+        //             reflectivity: 0.189,
+        //             clearcoat: 0.
+        //         });
+        //         earthMat.shading = THREE.SmoothShading;
+        //         earth = new THREE.Mesh(earthGeo, earthMat);
+        //         earth.position.set(0, -637.1, 0);
+        //         scene.add(earth);
+        //     },
+
+        //     // onProgress callback currently not supported
+        //     undefined,
+
+        //     // onError callback
+        //     function (err) {
+        //         console.error('An error happened.');
+        //     }
+        // );
 
         let circleGeo = new THREE.CircleGeometry(220, 50);
         let circleMat = new THREE.MeshBasicMaterial({ color: 0xffccaa });
@@ -411,7 +421,7 @@ class App {
         circle.position.set(1500, 500, 0);
         circle.scale.setX(1.2);
         circle.lookAt(new THREE.Vector3(0, 0, 0));
-        scene.add(circle);
+        // scene.add(circle);
 
         renderer = new THREE.WebGLRenderer({
             powerPreference: "high-performance",
@@ -421,8 +431,8 @@ class App {
         });
         // renderer.toneMappingExposure = Math.pow(0.7, 1.0);
         renderer.outputEncoding = THREE.sRGBEncoding;
-        renderer.toneMapping = THREE.ReinhardToneMapping;
-        renderer.toneMappingExposure = 1.0;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
         renderer.physicallyCorrectLights = true;
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.autoClear = false;
@@ -431,20 +441,23 @@ class App {
         document.body.appendChild(renderer.domElement);
 
         //HDRI LOADER
-        var envmaploader = new THREE.PMREMGenerator(renderer);
-        const loadhdri = new RGBELoader().load("../assets/starmap_4k.hdr", function (texture) {
-            texture.mapping = THREE.EquirectangularReflectionMapping;
-            scene.background = texture;
-            scene.environment = texture;
-            scene.envmap
-        });
+        // var envmaploader = new THREE.PMREMGenerator(renderer);
+        // const loadhdri = new RGBELoader().load("../assets/starmap_4k.hdr", function (texture) {
+        //     texture.mapping = THREE.EquirectangularReflectionMapping;
+        //     scene.background = texture;
+        //     scene.environment = texture;
+        //     scene.envmap
+        // });
 
-        // controls = new OrbitControls( camera, renderer.domElement );
-        // controls.enablePan = false;
-        // controls.enableZoom = false;
-        // controls.maxDistance = 1200;
-        // controls.autoRotate = false;
-        // controls.update();
+        controls = new OrbitControls( animatingCamera, renderer.domElement );
+        controls.enablePan = true;
+        controls.enableZoom = true;
+        controls.maxDistance = 2000;
+        controls.autoRotate = false;
+        controls.zoomSpeed = 5;
+        // controls.object.position.set(0, 100, 700);
+        // controls.target = new THREE.Vector3(0, 100, 0);
+        controls.update();
 
         // controls = new FirstPersonControls( camera);
         // controls.lookSpeed = 0.05;
@@ -458,8 +471,8 @@ class App {
             samples: 300
         });
 
-        renderPass = new POSTPROCESSING.RenderPass(scene, splineCamera);
-        effectPass = new POSTPROCESSING.EffectPass(splineCamera, godraysEffect);
+        renderPass = new POSTPROCESSING.RenderPass(scene, animatingCamera);
+        effectPass = new POSTPROCESSING.EffectPass(animatingCamera, godraysEffect);
         effectPass.renderToScreen = true;
 
         composer = new POSTPROCESSING.EffectComposer(renderer);
@@ -467,6 +480,67 @@ class App {
         composer.addPass(effectPass);
     }
 
+}
+
+function theatre() {
+    animatingCamera.lookAt(0.5, 1, 0);
+    animatingCamera.position.set(0, 0, 300);
+
+    const cameraObj = sheet.object('CameraObj', {
+        // Note that the rotation is in radians
+        // (full rotation: 2 * Math.PI)
+        fov: types.number(animatingCamera.fov, { range: [0, 100] }),
+        position: types.compound({
+            x: types.number(animatingCamera.position.x, { range: [-1000, 1000] }),
+            y: types.number(animatingCamera.position.y, { range: [-800, 1200] }),
+            z: types.number(animatingCamera.position.z, { range: [0, 2000] })
+        }),
+        rotation: types.compound({
+            x: types.number(animatingCamera.rotation.x, { range: [-2, 2] }),
+            y: types.number(animatingCamera.rotation.y, { range: [-2, 2] }),
+            z: types.number(animatingCamera.rotation.z, { range: [-2, 2] })
+        }),
+        // lookAt: types.compound({
+        //     x: types.number(camera.lookAt.x, { range: [-1000, 1000] }),
+        //     y: types.number(camera.lookAt.y, { range: [-2, 1200] }),
+        //     z: types.number(camera.lookAt.z, { range: [-1000, 1000] })
+        // })
+    });
+
+    cameraObj.onValuesChange((values) => {
+        const {x, y, z} = values.position;
+        const rx = values.rotation.x;
+        const ry = values.rotation.y;
+        const rz = values.rotation.z;
+        // const {lx, ly, lz} = values.lookAt;
+        
+        animatingCamera.fov = values.fov;
+        animatingCamera.position.set(x, y, z);
+        if(animatingCamera)
+            animatingCamera.rotation.set(rx * Math.PI, ry * Math.PI, rz * Math.PI);
+        // animatingCamera.lookAt(missile);
+        // controls.target = new THREE.Vector3(0, y, 0);
+        animatingCamera.updateProjectionMatrix();
+        // console.log(animatingCamera.position, cameraHelper.camera.position);
+        // controls.object.target = new THREE.Vector3(x, Math.random() * y, 0);
+
+        // controls.update();
+    });
+
+    const earthObj = sheet.object('EarthObj', {
+        // Note that the rotation is in radians
+        rotation: types.compound({
+            x: types.number(earth.rotation.x, { range: [-2, 2] }),
+            y: types.number(earth.rotation.y, { range: [-2, 2] }),
+            z: types.number(earth.rotation.z, { range: [-2, 2] })
+        }),
+    });
+
+    earthObj.onValuesChange((values) => {
+        const {x, y, z} = values.rotation;
+
+        earth.rotation.set(x * Math.PI, y * Math.PI, z * Math.PI);
+    });
 }
 
 function addComposer(cam) {
@@ -530,17 +604,75 @@ function renderCamera(n) {
     tz = points[currentPosition].z;
 }
 
+function ease(x, m = 1) {
+    if (x <= 0.51){
+        return easeOutCubic(x * m) * 0.5;
+    } else {
+        return easeInCubic(((x) % 0.5) * 2) * 0.5 + 0.5;
+    }
+}
+
+function easeOutCubic(x) {
+    return 1 - Math.pow(1 - x, 5);
+}
+
+function easeInCubic(x) {
+    return x*x*x*x*x;
+}
+
+function reset() {
+    // scene.remove(missile);
+    // scene.remove(missileBase);
+    // scene.remove(missileBaseR);
+    // scene.remove(missileBaseL);
+    // scene.remove(stageTwo);
+    // missileBase = null;
+    // missileBaseTrajectory = null;
+    // stageTwoTrajectory = null;
+    // missile = new THREE.Object3D();
+    // missile = missileOrig.clone();
+    // scene.add(missile);
+    clock.stop();
+    clock.start();
+    // stageOneClock.stop();
+    // stageTwoClock.stop();
+}
+
+function generateText(font, message, fontSize, position) {
+    const shapes = font.generateShapes( message, fontSize );
+
+    const textGeo = new THREE.ShapeGeometry( shapes );
+
+    textGeo.computeBoundingBox();
+
+    const centerOffset = - 0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
+
+    const textMat = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide});
+
+    const textMesh = new THREE.Mesh( textGeo, textMat );
+
+    textMesh.position.set(centerOffset + position.x, position.y, position.z);
+
+    textGroup.add(textMesh);
+}
+
+window.onkeydown = ((e) => {
+    if(e.keyCode == 32)
+        reset();
+});
+
 function render() {
 
     // animate camera along spline
 
     const time = clock.getElapsedTime();
     const looptime = 20 * 1;
-    const t = (time % looptime) / looptime;
+    let ti = (time % looptime) / looptime;
+    let t = ease(ti, 1);
 
     tubeGeometry.parameters.path.getPointAt(t, position);
     position.multiplyScalar(1);
-    tubeGeometry.parameters.path.getPointAt(t + 0.001, missilePosition);
+    tubeGeometry.parameters.path.getPointAt(t + 0.01, missilePosition);
     missilePosition.multiplyScalar(1);
 
     // interpolation
@@ -554,8 +686,8 @@ function render() {
     binormal.subVectors(tubeGeometry.binormals[pickNext], tubeGeometry.binormals[pick]);
     binormal.multiplyScalar(pickt - pick).add(tubeGeometry.binormals[pick]);
 
-    missileBinormal.subVectors(tubeGeometry.binormals[missileNext + 1], tubeGeometry.binormals[missileNext]);
-    missileBinormal.multiplyScalar(pickt - missileNext).add(tubeGeometry.binormals[missileNext]);
+    missileBinormal.subVectors(tubeGeometry.binormals[missileNext], tubeGeometry.binormals[pick]);
+    missileBinormal.multiplyScalar(pickt - pick).add(tubeGeometry.binormals[pick]);
 
     tubeGeometry.parameters.path.getTangentAt(t, direction);
     tubeGeometry.parameters.path.getTangentAt(t + 0.001, missileDirection);
@@ -578,7 +710,7 @@ function render() {
     tubeGeometry.parameters.path.getPointAt((t + 30 / tubeGeometry.parameters.path.getLength()) % 1, lookAt);
     lookAt.multiplyScalar(1);
 
-    tubeGeometry.parameters.path.getPointAt((t + 0.001 + 30 / tubeGeometry.parameters.path.getLength()) % 1, missileLookAt);
+    tubeGeometry.parameters.path.getPointAt((t + 0.00001 + 30 / tubeGeometry.parameters.path.getLength()) % 1, missileLookAt);
     missileLookAt.multiplyScalar(1);
 
     // camera orientation 2 - up orientation via normal
@@ -595,129 +727,94 @@ function render() {
     missile.matrix.lookAt(missile.position, missileLookAt, missileNormal);
     missile.quaternion.setFromRotationMatrix(missile.matrix);
 
-    if (t > 0.25) {
-        if (!missileBaseTrajectory) {
-            jettisonStageOne(missile);
-        }
-
-        renderStageOne();
-    }
-
-    if (t > 0.4) {
-        if (!stageTwoTrajectory) {
-            jettisonStageTwo(missile);
-        }
-
-        renderStageTwo();
-    }
-
-    if (t > 0.98)
+    if (ti >= 1.0)
         reset();
 
     composer.render(0.01);
 }
 
-function renderStageOne() {
-    const time = stageOneClock.getElapsedTime();
-    const looptime = 2000 * 1;
-    const t = (time) / looptime;
-
-    let newPosition, tangent, radians;
-
-    if (t < 1) {
-        newPosition = missileBaseTrajectory.getPointAt(t);
-        tangent = missileBaseTrajectory.getTangent(t);
-        missileBase.position.copy(newPosition);
-        axis.crossVectors(up, tangent).normalize();
-        radians = Math.acos(up.dot(tangent));
-        missileBase.quaternion.setFromAxisAngle(axis, radians);
-
-        newPosition = missileBaseRTrajectory.getPointAt(t);
-        tangent = missileBaseRTrajectory.getTangent(t);
-        missileBaseR.position.copy(newPosition);
-        axis.crossVectors(up, tangent).normalize();
-        radians = Math.acos(up.dot(tangent));
-        missileBaseR.quaternion.setFromAxisAngle(axis, radians);
-
-        newPosition = missileBaseLTrajectory.getPointAt(t);
-        tangent = missileBaseLTrajectory.getTangent(t);
-        missileBaseL.position.copy(newPosition);
-        axis.crossVectors(up, tangent).normalize();
-        radians = Math.acos(up.dot(tangent));
-        missileBaseL.quaternion.setFromAxisAngle(axis, radians);
-    }
-}
-
-function renderStageTwo() {
-    const time = stageTwoClock.getElapsedTime();
-    const looptime = 2000 * 1;
-    const t = (time) / looptime;
-
-    let newPosition, tangent, radians;
-
-    if (t < 1) {
-        newPosition = stageTwoTrajectory.getPointAt(t);
-        tangent = stageTwoTrajectory.getTangent(t);
-        stageTwo.position.copy(newPosition);
-        axis.crossVectors(up, tangent).normalize();
-        radians = Math.acos(up.dot(tangent));
-        stageTwo.quaternion.setFromAxisAngle(axis, radians);
-    }
-}
-
-function jettisonStageOne(parentMissile) {
-    console.log("Jettison Stage One");
-    stageOneClock.start();
-
-    missileBase = parentMissile.children[0];
-    scene.attach(missileBase);
-
-    missileBaseR = parentMissile.children[parentMissile.children.length - 2];
-    scene.attach(missileBaseR);
-    missileBaseR.rotateX(Math.PI / 2);
-
-    missileBaseL = parentMissile.children[parentMissile.children.length - 1];
-    scene.attach(missileBaseL);
-    missileBaseL.rotateY(Math.PI / 2);
-
-    // create trajectory for jettison stage
-    missileBaseTrajectory = new THREE.CurvePath();
-    missileBaseTrajectory.add(new THREE.LineCurve3(missileBase.position, new THREE.Vector3(0, -25, 0)));
-    missileBaseRTrajectory = new THREE.CurvePath();
-    missileBaseRTrajectory.add(new THREE.LineCurve3(missileBaseR.position, new THREE.Vector3(10, -25, 0)));
-    missileBaseLTrajectory = new THREE.CurvePath();
-    missileBaseLTrajectory.add(new THREE.LineCurve3(missileBaseL.position, new THREE.Vector3(-10, -25, 0)));
-}
-
-function jettisonStageTwo(parentMissile) {
-    console.log("Jettison Stage Two");
-    stageTwoClock.start();
-
-    stageTwo = parentMissile.getObjectByName("stageTwo");
-    scene.attach(stageTwo);
-
-    // create trajectory for jettison stage
-    stageTwoTrajectory = new THREE.CurvePath();
-    stageTwoTrajectory.add(new THREE.LineCurve3(stageTwo.position, new THREE.Vector3(0, -25, 0)));
-}
-
-function reset() {
-    scene.remove(missile);
-    scene.remove(missileBase);
-    scene.remove(missileBaseR);
-    scene.remove(missileBaseL);
-    scene.remove(stageTwo);
-    missileBase = null;
-    missileBaseTrajectory = null;
-    stageTwoTrajectory = null;
-    missile = new THREE.Object3D();
-    missile = missileOrig.clone();
-    scene.add(missile);
-    clock.stop();
-    clock.start();
-    stageOneClock.stop();
-    stageTwoClock.stop();
-}
-
-
 export default App;
+
+// function renderStageOne() {
+//     const time = stageOneClock.getElapsedTime();
+//     const looptime = 2000 * 1;
+//     const t = (time) / looptime;
+
+//     let newPosition, tangent, radians;
+
+//     if (t < 1) {
+//         newPosition = missileBaseTrajectory.getPointAt(t);
+//         tangent = missileBaseTrajectory.getTangent(t);
+//         missileBase.position.copy(newPosition);
+//         axis.crossVectors(up, tangent).normalize();
+//         radians = Math.acos(up.dot(tangent));
+//         missileBase.quaternion.setFromAxisAngle(axis, radians);
+
+//         newPosition = missileBaseRTrajectory.getPointAt(t);
+//         tangent = missileBaseRTrajectory.getTangent(t);
+//         missileBaseR.position.copy(newPosition);
+//         axis.crossVectors(up, tangent).normalize();
+//         radians = Math.acos(up.dot(tangent));
+//         missileBaseR.quaternion.setFromAxisAngle(axis, radians);
+
+//         newPosition = missileBaseLTrajectory.getPointAt(t);
+//         tangent = missileBaseLTrajectory.getTangent(t);
+//         missileBaseL.position.copy(newPosition);
+//         axis.crossVectors(up, tangent).normalize();
+//         radians = Math.acos(up.dot(tangent));
+//         missileBaseL.quaternion.setFromAxisAngle(axis, radians);
+//     }
+// }
+
+// function renderStageTwo() {
+//     const time = stageTwoClock.getElapsedTime();
+//     const looptime = 2000 * 1;
+//     const t = (time) / looptime;
+
+//     let newPosition, tangent, radians;
+
+//     if (t < 1) {
+//         newPosition = stageTwoTrajectory.getPointAt(t);
+//         tangent = stageTwoTrajectory.getTangent(t);
+//         stageTwo.position.copy(newPosition);
+//         axis.crossVectors(up, tangent).normalize();
+//         radians = Math.acos(up.dot(tangent));
+//         stageTwo.quaternion.setFromAxisAngle(axis, radians);
+//     }
+// }
+
+// function jettisonStageOne(parentMissile) {
+//     console.log("Jettison Stage One");
+//     stageOneClock.start();
+
+//     missileBase = parentMissile.children[0];
+//     scene.attach(missileBase);
+
+//     missileBaseR = parentMissile.children[parentMissile.children.length - 2];
+//     scene.attach(missileBaseR);
+//     missileBaseR.rotateX(Math.PI / 2);
+
+//     missileBaseL = parentMissile.children[parentMissile.children.length - 1];
+//     scene.attach(missileBaseL);
+//     missileBaseL.rotateY(Math.PI / 2);
+
+//     // create trajectory for jettison stage
+//     missileBaseTrajectory = new THREE.CurvePath();
+//     missileBaseTrajectory.add(new THREE.LineCurve3(missileBase.position, new THREE.Vector3(0, -25, 0)));
+//     missileBaseRTrajectory = new THREE.CurvePath();
+//     missileBaseRTrajectory.add(new THREE.LineCurve3(missileBaseR.position, new THREE.Vector3(10, -25, 0)));
+//     missileBaseLTrajectory = new THREE.CurvePath();
+//     missileBaseLTrajectory.add(new THREE.LineCurve3(missileBaseL.position, new THREE.Vector3(-10, -25, 0)));
+// }
+
+// function jettisonStageTwo(parentMissile) {
+//     console.log("Jettison Stage Two");
+//     stageTwoClock.start();
+
+//     stageTwo = parentMissile.getObjectByName("stageTwo");
+//     scene.attach(stageTwo);
+
+//     // create trajectory for jettison stage
+//     stageTwoTrajectory = new THREE.CurvePath();
+//     stageTwoTrajectory.add(new THREE.LineCurve3(stageTwo.position, new THREE.Vector3(0, -25, 0)));
+// } 
