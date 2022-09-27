@@ -139,7 +139,7 @@ function setupPane() {
 class App {
 
     init() {
-        setupPane();
+        // setupPane();
         if (import.meta.env.DEV) {
             // studio.extend(extension);
             studio.initialize();
