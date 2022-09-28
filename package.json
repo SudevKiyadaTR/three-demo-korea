@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "type": "module",
   "author": "Sudev",
   "license": "MIT",
   "dependencies": {
