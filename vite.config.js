@@ -2,5 +2,8 @@ import { defineConfig } from 'vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
-   base: '/three-demo-korea/'
+   base: '/three-demo-korea/',
+   build: {
+    outDir: 'dist'
+  }
 })
