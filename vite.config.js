@@ -1,5 +1,6 @@
-const ASSET_URL = process.env.ASSET_URL || '';
+import { defineConfig } from 'vite'
 
-export default { 
-  base: `${ASSET_URL}/dist/`
-}
+// https://vitejs.dev/config/
+export default defineConfig({
++  base: '/three-demo-korea/'
+})
