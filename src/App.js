@@ -235,7 +235,7 @@ class App {
         // Load ISS
         loader.load(
             // resource URL
-            './models/iss.glb',
+            import.meta.env.BASE_URL + '/models/iss.glb',
             // called when the resource is loaded
             function (gltf) {
 
@@ -263,7 +263,7 @@ class App {
         // Load Hwasong
         loader.load(
             // resource URL
-            './models/missile2.glb',
+            import.meta.env.BASE_URL + '/models/missile2.glb',
             // called when the resource is loaded
             function (gltf) {
 
@@ -347,7 +347,7 @@ class App {
 
         let earthTex;
 
-        const texture = Promise.all([texLoader.load( '/assets/2k_earth_daymap.jpeg'), texLoader.load('/assets/2k_earth_specular_map 1.jpg'), texLoader.load('/assets/elev_bump_8k.jpeg')], (resolve, reject) => {
+        const texture = Promise.all([texLoader.load( import.meta.env.BASE_URL + '/assets/2k_earth_daymap.jpeg'), texLoader.load(import.meta.env.BASE_URL + '/assets/2k_earth_specular_map 1.jpg'), texLoader.load(import.meta.env.BASE_URL + '/assets/elev_bump_8k.jpeg')], (resolve, reject) => {
             resolve(texture);
         }).then(result => {
             // result in array of textures
@@ -374,7 +374,7 @@ class App {
         // load text objects
         const fntLoader = new FontLoader();
 
-        fntLoader.load( '/assets/Knowledge Medium_Regular.json', function ( font ) {
+        fntLoader.load( import.meta.env.BASE_URL + '/assets/Knowledge Medium_Regular.json', function ( font ) {
             generateText(font, "North Korea", 8, new THREE.Vector3(-50, 10, 0));
             generateText(font, "Pyongyang", 3, new THREE.Vector3(-50, 3, 0));
             generateText(font, "Japan", 8, new THREE.Vector3(40, 10, 50));
