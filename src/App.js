@@ -350,6 +350,7 @@ class App {
         const texture = Promise.all([texLoader.load( import.meta.env.BASE_URL + 'assets/2k_earth_daymap.jpeg'), texLoader.load(import.meta.env.BASE_URL + 'assets/2k_earth_specular_map 1.jpg'), texLoader.load(import.meta.env.BASE_URL + 'assets/elev_bump_8k.jpeg')], (resolve, reject) => {
             resolve(texture);
         }).then(result => {
+            console.log("earth texs loaded");
             // result in array of textures
             let earthGeo = new THREE.SphereGeometry(637.1, 32, 24);
             // let earthMat = new THREE.MeshBasicMaterial({color: 0xffccaa});
@@ -359,9 +360,7 @@ class App {
                 roughness: 0.5,
                 bumpMap: result[2],
                 bumpScale: 3.0,
-                metalness: 0.3,
-                reflectivity: 0.5,
-                clearcoat: 0.0
+                metalness: 0.3
             });
 
             earthMat.shading = THREE.SmoothShading;
