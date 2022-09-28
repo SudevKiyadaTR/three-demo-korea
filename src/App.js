@@ -322,7 +322,7 @@ class App {
         // load a resource
         texLoader.load(
             // resource URL
-            '/assets/yellow_matcap.png',
+            import.meta.env.BASE_URL + '/assets/yellow_matcap.png',
 
             // onLoad callback
             function (texture) {
