@@ -235,7 +235,7 @@ class App {
         // Load ISS
         loader.load(
             // resource URL
-            '/models/iss.glb',
+            './models/iss.glb',
             // called when the resource is loaded
             function (gltf) {
 
@@ -263,7 +263,7 @@ class App {
         // Load Hwasong
         loader.load(
             // resource URL
-            '/models/missile2.glb',
+            './models/missile2.glb',
             // called when the resource is loaded
             function (gltf) {
 
