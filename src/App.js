@@ -79,6 +79,8 @@ const wireframeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, opacity
 
 let clock = new THREE.Clock();
 clock.stop();
+let waveClock = new THREE.Clock();
+waveClock.start();
 let stageOneClock = new THREE.Clock();
 let stageTwoClock = new THREE.Clock();
 
@@ -814,14 +816,10 @@ function animate() {
     }
 
     if(((clock.elapsedTime + 0.05) / looptime) > 1) {
-        // clock.elapsedTime = 20;
         clock.stop();
     }
 
     render();
-
-    // let dist = land.position.distanceTo(splineCamera.position);
-    // skyColorTransition(dist);
 }
 
 function ease(x, m = 1) {
@@ -886,8 +884,10 @@ window.onkeydown = ((e) => {
 });
 
 function render() {
+    // to animate markers
+    globalUniforms.time.value = waveClock.getElapsedTime();
+
     const time = clock.getElapsedTime();
-    globalUniforms.time.value = time;
     const looptime = 20 * 1;
     let ti = (time % looptime) / looptime;
     let t = easingCurve(ti);
