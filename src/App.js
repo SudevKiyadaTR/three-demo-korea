@@ -805,6 +805,7 @@ function animate() {
     const looptime = 20;
     // controls.update();
     requestAnimationFrame(animate);
+    render();
 
     if (sheet.sequence.position >= 3.5 && clock.elapsedTime == 0) {
         clock.start();
@@ -818,8 +819,6 @@ function animate() {
     if(((clock.elapsedTime + 0.05) / looptime) > 1) {
         clock.stop();
     }
-
-    render();
 }
 
 function ease(x, m = 1) {
