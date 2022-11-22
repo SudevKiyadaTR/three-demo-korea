@@ -19,7 +19,7 @@ import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import BazierEasing from 'bezier-easing';
 
-const easingCurve = BazierEasing(0, 1.0, 0.5, 0.0);
+const easingCurve = BazierEasing(0.17, 0.77, 0.70, 0.20);
 const bgColor = 0x000000;
 const sunColor = 0xffee00;
 const screenSpacePosition = new THREE.Vector3();
@@ -720,7 +720,7 @@ function initMarkers() {
     // <Markers>
     const markerCount = markerPoints.length;
     let markerInfo = []; // information on markers
-    let gMarker = new THREE.PlaneGeometry(25, 25);
+    let gMarker = new THREE.PlaneGeometry(12, 12);
     let mMarker = new THREE.MeshBasicMaterial({
     color: 0xff4400,
     onBeforeCompile: (shader) => {
@@ -777,7 +777,7 @@ function initMarkers() {
 
     markerInfo.push({
         id: i + 1,
-        mag: THREE.MathUtils.randInt(1, 20),
+        mag: 1,
         crd: dummy.position.clone()
     });
     }
