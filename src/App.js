@@ -168,7 +168,7 @@ class App {
             studio.ui.hide();
         }
         // project = getProject('THREE.js x Theatre.js');
-        project = getProject('THREE.js x Theatre.js', {projectState});
+        project = getProject('THREE.js x Theatre.js', {state: projectState});
         sheet = project.sheet('animated scene');
         
         scene = new THREE.Scene();
