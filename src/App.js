@@ -514,7 +514,7 @@ class App {
         //     // earthGroup.add(earthGlow);
         // });
 
-        // load text objects
+        // load text object
         const fntLoader = new FontLoader();
 
         fntLoader.load( import.meta.env.BASE_URL + 'assets/Knowledge Medium_Regular.json', function ( font ) {
