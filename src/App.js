@@ -17,8 +17,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
-import * as BezierEasing from 'bezier-easing';
-import { LOD } from 'three';
+import * as BezierEasing from 'bezier-easing/src/index.js';
 
 const easingCurve = BezierEasing(0, 1.0, 0.5, 0.0);
 const bgColor = 0x000000;
@@ -166,6 +165,7 @@ class App {
         if (import.meta.env.DEV) {
             // studio.extend(extension);
             studio.initialize();
+            studio.ui.hide();
         }
         // project = getProject('THREE.js x Theatre.js');
         project = getProject('THREE.js x Theatre.js', {projectState});
