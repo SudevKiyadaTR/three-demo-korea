@@ -15,6 +15,7 @@
     "@theatre/core": "^0.5.0",
     "@theatre/studio": "^0.5.0",
     "@types/three": "^0.144.0",
+    "bezier-easing": "^2.1.0",
     "postprocessing": "^6.28.7",
     "three": "^0.144.0",
     "tweakpane": "^3.1.0",
