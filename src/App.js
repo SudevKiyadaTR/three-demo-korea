@@ -17,9 +17,9 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
-import * as bezier from 'bezier-easing';
+import BezierEasing from 'bezier-easing';
 
-const easingCurve = bezier(0, 1.0, 0.5, 0.0);
+const easingCurve = BezierEasing(0, 1.0, 0.5, 0.0);
 const bgColor = 0x000000;
 const sunColor = 0xffee00;
 const screenSpacePosition = new THREE.Vector3();
