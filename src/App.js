@@ -350,8 +350,11 @@ class App {
             project.ready.then(() => {
                 console.log("project is ready");
                 // clock.start();
-                sheet.sequence.play({iterationCount: 1, range: [0, 6] });
-                animate();
+                setTimeout(() => {
+                    console.log('now playing');
+                    sheet.sequence.play({iterationCount: 1, range: [0, 6] });
+                    animate();
+                }, 1000);
             });            
         };
 
@@ -620,8 +623,8 @@ class App {
 
         composer = new EffectComposer(renderer);
         composer.addPass(renderScene);
-        // composer.addPass(effectFXAA);
-        // composer.addPass(bloomPass);
+        composer.addPass(effectFXAA);
+        composer.addPass(bloomPass);
     }
 
 }
@@ -947,10 +950,10 @@ function render() {
     position.add(normal.clone().multiplyScalar(offset));
     missilePosition.add(missileNormal.clone().multiplyScalar(0));
 
-    splineCamera.position.copy(position);
+    // splineCamera.position.copy(position);
     // missile.position.copy(missilePosition);
     missile.position.set(points[pick].x, points[pick].y, points[pick].z);
-    birdViewCamera.position.copy(position);
+    // birdViewCamera.position.copy(position);
 
     // using arclength for stablization in look ahead
 
@@ -963,15 +966,15 @@ function render() {
 
     // camera orientation 2 - up orientation via normal
 
-    if (!PARAMS.lookAhead) lookAt.copy(position).add(direction);
-    if (flagVerticalCamera)
-        splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt(t + 0.001), normal);
-    else if (flagDefaultCamera)
-        splineCamera.matrix.lookAt(splineCamera.position, lookAt, normal);
-    else if (flagBirdEyeView)
-        splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt(t + 1), new THREE.Vector3(0, 1, 0));
+    // if (!PARAMS.lookAhead) lookAt.copy(position).add(direction);
+    // if (flagVerticalCamera)
+    //     splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt(t + 0.001), normal);
+    // else if (flagDefaultCamera)
+    //     splineCamera.matrix.lookAt(splineCamera.position, lookAt, normal);
+    // else if (flagBirdEyeView)
+    //     splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt(t + 1), new THREE.Vector3(0, 1, 0));
 
-    splineCamera.quaternion.setFromRotationMatrix(splineCamera.matrix);
+    // splineCamera.quaternion.setFromRotationMatrix(splineCamera.matrix);
     missile.matrix.lookAt(missile.position, missileLookAt, missileNormal);
     missile.quaternion.setFromRotationMatrix(missile.matrix);
 
