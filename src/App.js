@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as POSTPROCESSING from 'postprocessing';
 import studio from '@theatre/studio';
-import {getProject, types, val} from '@theatre/core';
+import {getProject, types} from '@theatre/core';
 import projectState from './state.json';
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
@@ -17,15 +17,16 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import BazierEasing from 'bezier-easing';
 
-const easingCurve = BazierEasing(0.17, 0.77, 0.70, 0.20);
+const easingCurve = BazierEasing(0.00, 0.40, 1.00, 0.70);
 const bgColor = 0x000000;
 const sunColor = 0xffee00;
 const screenSpacePosition = new THREE.Vector3();
 const clipPosition = new THREE.Vector3();
 const postprocessing = { enabled: true };
-let scene, camera, renderer;
+let scene, camera, renderer, labelRenderer;
 let land, earth, sun, composer, controls, missile;
 let lineCurve, lineGeometry, parent, splineCamera, cameraHelper, cameraEye, birdViewCamera;
 let flagDefaultCamera = true, flagBirdEyeView = false, flagVerticalCamera = false;
@@ -347,9 +348,9 @@ class App {
             theatre();
 
             project.ready.then(() => {
-                // console.log("project is ready");
+                console.log("project is ready");
                 // clock.start();
-                sheet.sequence.play({iterationCount: 1, range: [0, 5] });
+                sheet.sequence.play({iterationCount: 1, range: [0, 6] });
                 animate();
             });
 
@@ -521,12 +522,12 @@ class App {
 
         fntLoader.load( import.meta.env.BASE_URL + 'assets/Knowledge Medium_Regular.json', function ( font ) {
             knowledgeFont = font;
-            generateText(font, "North Korea", 8, calcPosFromLatLonRad(37.81689349316444, 124.22657884591786, 640), earthGroup);
-            generateText(font, "Pyongyang", 3, calcPosFromLatLonRad(39.036170458253565, 124.75861353308592, 640), earthGroup);
-            generateText(font, "Japan", 8, calcPosFromLatLonRad(35.772943512663176, 137.8048990566746, 640), earthGroup);
-            generateText(font, "Hokkaido", 3, calcPosFromLatLonRad(42.78343327772553, 141.17912575432618, 640), earthGroup);
-            generateText(font, "International\nSpace Station", 2, calcPosFromLatLonRad(39.8, 125.0, 637.1 + 42 ), earthGroup);
-            generateText(font, "height", 3, points[0], earthGroup);
+            generateText(font, "International\nSpace Station", 12, calcPosFromLatLonRad(39.8, 125.0, 637.1 + 42 ), earthGroup);
+            generateText(font, "North Korea", 20, calcPosFromLatLonRad(37.81689349316444, 124.22657884591786, 640), earthGroup);
+            generateText(font, "Pyongyang", 12, calcPosFromLatLonRad(39.036170458253565, 124.75861353308592, 640), earthGroup);
+            generateText(font, "Hokkaido", 12, calcPosFromLatLonRad(42.78343327772553, 141.17912575432618, 640), earthGroup);
+            generateText(font, "Japan", 20, calcPosFromLatLonRad(35.772943512663176, 137.8048990566746, 640), earthGroup);
+            generateText(font, "height", 12, points[0], earthGroup);
         } );
 
         // // load a resource
@@ -582,6 +583,13 @@ class App {
         renderer.setClearColor(0xffffff);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
+
+        // CSS renderer
+        labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize( window.innerWidth, window.innerHeight );
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        document.body.appendChild( labelRenderer.domElement );
 
         //HDRI LOADER
         // var envmaploader = new THREE.PMREMGenerator(renderer);
@@ -812,11 +820,11 @@ function animate() {
     }
 
     if(clock.elapsedTime >= 16 && playFlag) {
-        sheet.sequence.play({iterationCount: 1, range: [5, 10]});
+        sheet.sequence.play({iterationCount: 1, range: [6, 11]});
         playFlag = false;
     }
 
-    if(((clock.elapsedTime + 0.05) / looptime) > 1) {
+    if(((clock.elapsedTime + 0.01) / looptime) > 1) {
         clock.stop();
     }
 }
@@ -856,25 +864,40 @@ function reset() {
 }
 
 function generateText(font, message, fontSize, position, parent, name=message) {
-    const shapes = font.generateShapes( message, fontSize );
+    // const shapes = font.generateShapes( message, fontSize );
 
-    const textGeo = new THREE.ShapeGeometry( shapes );
+    // const textGeo = new THREE.ShapeGeometry( shapes );
 
-    textGeo.computeBoundingBox();
+    // textGeo.computeBoundingBox();
 
-    const centerOffset = - 0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
+    // const centerOffset = - 0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
 
-    const textMat = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide});
+    // const textMat = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide});
 
-    const textMesh = new THREE.Mesh( textGeo, textMat );
+    // const textMesh = new THREE.Mesh( textGeo, textMat );
 
-    textMesh.position.set(centerOffset + position.x, position.y, position.z);
+    const textContainer = document.createElement( 'div' );
+    textContainer.style.filter = 'drop-shadow(0px 2px 4px black)';
+    const labelContainer = document.createElement( 'div' );
+    textContainer.appendChild(labelContainer);
+    labelContainer.style.filter = 'drop-shadow(0px 2px 4px black)';
+    labelContainer.className = 'label';
+    labelContainer.textContent = message;
+    labelContainer.style.marginTop = '-1em';
+    labelContainer.style.fontSize = fontSize + 'px';
+    const label = new CSS2DObject( textContainer );
+    label.name = 'text_' + name;
+    label.position.set( position.x, position.y, position.z );
+    parent.add( label );
+    
+    // textMesh.position.set(centerOffset + position.x, position.y, position.z);
 
-    textMesh.name = "text_" + name;
+    // textMesh.name = "text_" + name;
 
-    textMesh.renderOrder = 2;
+    // textMesh.renderOrder = 2;
 
-    parent.add(textMesh);
+    // parent.add(textMesh);
+
 }
 
 window.onkeydown = ((e) => {
@@ -959,6 +982,7 @@ function render() {
         reset();
 
     composer.render();
+    labelRenderer.render( scene, animatingCamera );
 }
 
 function renderTrail(progress) {
@@ -1007,19 +1031,20 @@ function renderHeightTickr(progress) {
     const currPosition = Math.floor(points.length * progress);
     const hPosition = points[currPosition].clone();
     // hPosition.z = 2;
-    // hPosition.x += 40;
+    // hPosition.x += 100;
     let tickrText = "";
     if (progress < 0.96 && progress > 0) {
         tickrText = parseInt(Math.sin(progress * Math.PI) * 6248).toString() + ' kms';
     }
-    generateText(knowledgeFont, tickrText, 10, hPosition, earthGroup, 'height');
+    generateText(knowledgeFont, tickrText, 12, hPosition, earthGroup, 'height');
 
     // make all labels look at camera
     earthGroup.children.forEach(child => {
         if(child.name.includes('text_')) {
-            const cameraPosition = animatingCamera.position.clone();
-            // child.lookAt(animatingCamera.position);
-            child.lookAt(new THREE.Vector3(cameraPosition.x, cameraPosition.y + 500, cameraPosition.z + 200));
+            // const cameraPosition = animatingCamera.position.clone();
+            child.lookAt(animatingCamera.position);
+            // child.rotation.setFromRotationMatrix( animatingCamera.matrix );
+            // child.lookAt(new THREE.Vector3(cameraPosition.x, cameraPosition.y + 500, cameraPosition.z + 200));
         }
     });
 }
