@@ -978,8 +978,9 @@ function render() {
     missile.matrix.lookAt(missile.position, missileLookAt, missileNormal);
     missile.quaternion.setFromRotationMatrix(missile.matrix);
 
-    if (ti >= 1.0)
-        reset();
+    // to reset animation
+    // if (ti >= 1.0)
+    //     reset();
 
     composer.render();
     labelRenderer.render( scene, animatingCamera );
