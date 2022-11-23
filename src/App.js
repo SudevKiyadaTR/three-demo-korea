@@ -352,10 +352,7 @@ class App {
                 // clock.start();
                 sheet.sequence.play({iterationCount: 1, range: [0, 6] });
                 animate();
-            });
-
-            animate();
-            
+            });            
         };
 
 
