@@ -181,7 +181,7 @@ class App {
         if (import.meta.env.DEV) {
             // studio.extend(extension);
             studio.initialize();
-            studio.ui.hide();
+            // studio.ui.hide();
         }
         // project = getProject('THREE.js x Theatre.js');
         project = getProject('THREE.js x Theatre.js', {state: projectState});
@@ -202,7 +202,7 @@ class App {
         RectAreaLightUniformsLib.init();
         const width = 800;
         const height = 250;
-        const intensity = 20;
+        const intensity = 30;
         const rectLight = new THREE.RectAreaLight( 0x999999, intensity,  width, height );
         rectLight.position.set( 0, 1400, 0 );
         rectLight.lookAt( 0, 0, 0 );
@@ -460,8 +460,8 @@ class App {
         fntLoader.load( import.meta.env.BASE_URL + 'assets/Knowledge Medium_Regular.json', function ( font ) {
             knowledgeFont = font;
             // generateText(font, "International\nSpace Station", 12, calcPosFromLatLonRad(39.8, 125.0, 637.1 + 42 ), earthGroup);
-            generateText(font, "North Korea", 20, calcPosFromLatLonRad(37.81689349316444, 124.22657884591786, 640), earthGroup);
             generateText(font, "Pyongyang", 12, calcPosFromLatLonRad(39.036170458253565, 124.75861353308592, 640), earthGroup);
+            generateText(font, "North Korea", 20, calcPosFromLatLonRad(39.81689349316444, 126.22657884591786, 640), earthGroup);
             generateText(font, "Hokkaido", 12, calcPosFromLatLonRad(42.78343327772553, 141.17912575432618, 640), earthGroup);
             generateText(font, "Japan", 20, calcPosFromLatLonRad(35.772943512663176, 137.8048990566746, 640), earthGroup);
             generateText(font, "height", 12, points[0], earthGroup);
@@ -547,21 +547,21 @@ class App {
         // controls.target = new THREE.Vector3(0, 100, 0);
         controls.update();
 
-        // const renderScene = new RenderPass(scene, animatingCamera);
+        const renderScene = new RenderPass(scene, animatingCamera);
 
-        // const effectFXAA = new ShaderPass( FXAAShader );
-        // effectFXAA.uniforms.resolution.value.set( 1/ window.innerWidth, 1 / window.innerHeight);
+        const effectFXAA = new ShaderPass( FXAAShader );
+        effectFXAA.uniforms.resolution.value.set( 1/ window.innerWidth, 1 / window.innerHeight);
 
-        // const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        // bloomPass.threshold = 0.80;
-        // bloomPass.strength = 0.5;
-        // bloomPass.radius = 1.0;
-        // bloomPass.renderToScreen = true;
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.80;
+        bloomPass.strength = 0.5;
+        bloomPass.radius = 1.0;
+        bloomPass.renderToScreen = true;
 
-        // composer = new EffectComposer(renderer);
-        // composer.addPass(renderScene);
-        // composer.addPass(effectFXAA);
-        // composer.addPass(bloomPass);
+        composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(effectFXAA);
+        composer.addPass(bloomPass);
     }
 
 }
@@ -721,11 +721,9 @@ function resourceLoaded() {
     resourcesLoaded += 1;
 
     if(resourcesLoaded === 3) {
-        setTimeout(() => {
             console.log('now playing');
-            sheet.sequence.play({iterationCount: 1, range: [0, 6] });
+            sheet.sequence.play({iterationCount: 1, range: [0, 7] });
             animate();
-        }, 500);
     }
 }
 
@@ -826,7 +824,7 @@ function animate() {
     }
 
     if(clock.elapsedTime >= 16 && playFlag) {
-        sheet.sequence.play({iterationCount: 1, range: [6, 11]});
+        sheet.sequence.play({iterationCount: 1, range: [7, 12]});
         playFlag = false;
     }
 
@@ -892,11 +890,13 @@ function generateText(font, message, fontSize, position, parent, name=message) {
     textContainer.appendChild(labelContainer);
     labelContainer.style.filter = 'drop-shadow(0px 2px 4px black)';
     labelContainer.className = 'label';
-    labelContainer.textContent = message;
+    labelContainer.textContent = (message === 'height') ? '' : message;
     labelContainer.style.marginTop = '-1em';
     labelContainer.style.fontSize = fontSize + 'px';
     const label = new CSS2DObject( textContainer );
     label.name = 'text_' + name;
+    if(label.name == 'text_height')
+        labelContainer.style.marginLeft = '6em';
     label.position.set( position.x, position.y, position.z );
     parent.add( label );
     
@@ -921,7 +921,7 @@ function render() {
 
     const time = clock.getElapsedTime();
     const looptime = 20 * 1;
-    let ti = (time % looptime) / looptime;
+    let ti = (time) / looptime;
     let t = easingCurve(ti);
 
     // render trailing line
@@ -993,8 +993,8 @@ function render() {
     // if (ti >= 1.0)
     //     reset();
 
-    // composer.render();
-    renderer.render(scene, animatingCamera);
+    composer.render();
+    // renderer.render(scene, animatingCamera);
     labelRenderer.render( scene, animatingCamera );
 }
 

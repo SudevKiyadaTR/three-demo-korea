@@ -6,11 +6,11 @@
           "CameraObj": {
             "position": {
               "z": 4,
-              "y": 662.416,
+              "y": 776.34,
               "x": -53.9
             },
             "rotation": {
-              "x": -0.576,
+              "x": -0.551,
               "y": 0,
               "z": 0
             },
@@ -38,24 +38,24 @@
                 "__debugName": "CameraObj:[\"position\",\"x\"]",
                 "keyframes": [
                   {
-                    "id": "SyILhiut2V",
+                    "id": "VURI71sGD6",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
                       0.5,
                       1,
                       0.5,
-                      0.5
+                      0
                     ],
                     "value": -53.89999999999999
                   },
                   {
-                    "id": "xKj2tR8j8n",
-                    "position": 1,
+                    "id": "SyILhiut2V",
+                    "position": 1.033,
                     "connectedRight": true,
                     "handles": [
                       0.5,
-                      0.5,
+                      1,
                       0.5,
                       0
                     ],
@@ -80,26 +80,26 @@
                 "__debugName": "CameraObj:[\"position\",\"y\"]",
                 "keyframes": [
                   {
-                    "id": "ErbKSU6vAb",
+                    "id": "5IBOX3iBhX",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
                       0.5,
                       1,
                       0.5,
-                      0.5
+                      0
                     ],
                     "value": 776.3400506329119
                   },
                   {
-                    "id": "DL7vqTfktf",
-                    "position": 1,
+                    "id": "ErbKSU6vAb",
+                    "position": 1.033,
                     "connectedRight": true,
                     "handles": [
                       0.5,
+                      1,
                       0.5,
-                      0.5,
-                      0
+                      0.5
                     ],
                     "value": 776.3400506329119
                   },
@@ -158,25 +158,25 @@
                 "__debugName": "CameraObj:[\"position\",\"z\"]",
                 "keyframes": [
                   {
-                    "id": "id_-Xz7xbc",
+                    "id": "rmrGr9KGUi",
                     "position": 0,
                     "connectedRight": true,
                     "handles": [
                       0.5,
                       1,
                       0.5,
-                      0.5
+                      0
                     ],
                     "value": 4
                   },
                   {
-                    "id": "Uft4xhCmb5",
-                    "position": 1,
+                    "id": "id_-Xz7xbc",
+                    "position": 1.033,
                     "connectedRight": true,
                     "handles": [
                       0.5,
-                      0.5,
-                      0.5,
+                      1,
+                      0.758,
                       0
                     ],
                     "value": 4
@@ -213,13 +213,13 @@
                 "keyframes": [
                   {
                     "id": "SSPjUAP68w",
-                    "position": 1,
+                    "position": 1.033,
                     "connectedRight": true,
                     "handles": [
                       0.5,
                       1,
-                      0.187,
-                      -0.001
+                      0.455,
+                      0.03
                     ],
                     "value": -0.5506835443037974
                   },
@@ -228,8 +228,8 @@
                     "position": 7,
                     "connectedRight": true,
                     "handles": [
-                      0.256,
-                      1.006,
+                      0.525,
+                      0.996,
                       0.861,
                       0.001
                     ],
@@ -255,7 +255,7 @@
                 "keyframes": [
                   {
                     "id": "wh3EJX1tWY",
-                    "position": 0,
+                    "position": 1.033,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -273,7 +273,7 @@
                 "keyframes": [
                   {
                     "id": "5ga5gk0uLd",
-                    "position": 0,
+                    "position": 1.033,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -308,7 +308,7 @@
                 "keyframes": [
                   {
                     "id": "D9srkLaEhk",
-                    "position": 0,
+                    "position": 1.033,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -368,7 +368,6 @@
   },
   "definitionVersion": "0.4.0",
   "revisionHistory": [
-    "IHTifnY-HzzxGToW",
     "6KfSbKl4MWcSZ87u",
     "2PCgkfRsPKeUtgyF",
     "p50gdoaX8JY2-6Kp",
