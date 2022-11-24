@@ -46,6 +46,7 @@ let knowledgeFont;
 let heightTickr;
 const earthGroup = new THREE.Group();
 let playFlag = true;
+let resourcesLoaded = 0;
 
 let globalUniforms = {
     time: { value: 0 }
@@ -350,11 +351,7 @@ class App {
             project.ready.then(() => {
                 console.log("project is ready");
                 // clock.start();
-                setTimeout(() => {
-                    console.log('now playing');
-                    sheet.sequence.play({iterationCount: 1, range: [0, 6] });
-                    animate();
-                }, 1000);
+                resourceLoaded();
             });            
         };
 
@@ -430,6 +427,8 @@ class App {
             scene.add(earthGroup);
 
             initMarkers();
+
+            resourceLoaded();
         
         }, function () {
         
@@ -719,6 +718,18 @@ function theatre() {
 
         // earthGroup.rotation.set(phi, theta, z);
     });
+}
+
+function resourceLoaded() {
+    resourcesLoaded += 1;
+
+    if(resourcesLoaded == 2) {
+        setTimeout(() => {
+            console.log('now playing');
+            sheet.sequence.play({iterationCount: 1, range: [0, 6] });
+            animate();
+        }, 1000);
+    }
 }
 
 function initMarkers() {
@@ -1036,7 +1047,7 @@ function renderHeightTickr(progress) {
     // hPosition.z = 2;
     // hPosition.x += 100;
     let tickrText = "";
-    if (progress < 0.96) {
+    if (progress < 0.96 && progress > 0) {
         tickrText = parseInt(Math.sin(progress * Math.PI) * 6248).toString() + ' kms';
     }
     generateText(knowledgeFont, tickrText, 12, hPosition, earthGroup, 'height');
