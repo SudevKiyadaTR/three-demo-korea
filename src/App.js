@@ -610,21 +610,21 @@ class App {
         // controls.target = new THREE.Vector3(0, 100, 0);
         controls.update();
 
-        const renderScene = new RenderPass(scene, animatingCamera);
+        // const renderScene = new RenderPass(scene, animatingCamera);
 
-        const effectFXAA = new ShaderPass( FXAAShader );
-        effectFXAA.uniforms.resolution.value.set( 1/ window.innerWidth, 1 / window.innerHeight);
+        // const effectFXAA = new ShaderPass( FXAAShader );
+        // effectFXAA.uniforms.resolution.value.set( 1/ window.innerWidth, 1 / window.innerHeight);
 
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0.80;
-        bloomPass.strength = 0.5;
-        bloomPass.radius = 1.0;
-        bloomPass.renderToScreen = true;
+        // const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        // bloomPass.threshold = 0.80;
+        // bloomPass.strength = 0.5;
+        // bloomPass.radius = 1.0;
+        // bloomPass.renderToScreen = true;
 
-        composer = new EffectComposer(renderer);
-        composer.addPass(renderScene);
-        composer.addPass(effectFXAA);
-        composer.addPass(bloomPass);
+        // composer = new EffectComposer(renderer);
+        // composer.addPass(renderScene);
+        // composer.addPass(effectFXAA);
+        // composer.addPass(bloomPass);
     }
 
 }
@@ -983,7 +983,8 @@ function render() {
     // if (ti >= 1.0)
     //     reset();
 
-    composer.render();
+    // composer.render();
+    renderer.render(scene, animatingCamera);
     labelRenderer.render( scene, animatingCamera );
 }
 
