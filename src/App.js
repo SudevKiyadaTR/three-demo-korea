@@ -623,8 +623,8 @@ class App {
 
         composer = new EffectComposer(renderer);
         composer.addPass(renderScene);
-        // composer.addPass(effectFXAA);
-        // composer.addPass(bloomPass);
+        composer.addPass(effectFXAA);
+        composer.addPass(bloomPass);
     }
 
 }
