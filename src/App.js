@@ -799,7 +799,7 @@ function initMarkers() {
     new THREE.InstancedBufferAttribute(new Float32Array(phase), 1)
     );
 
-    earthGroup.add(markers);
+    // earthGroup.add(markers);
     // console.log('earthGrp');
     // console.log(earthGroup);
     // </Markers>
