@@ -277,34 +277,34 @@ class App {
         const loader = new GLTFLoader(manager);
 
         // Load ISS
-        loader.load(
-            // resource URL
-            import.meta.env.BASE_URL + 'models/iss.glb',
-            // called when the resource is loaded
-            function (gltf) {
+        // loader.load(
+        //     // resource URL
+        //     import.meta.env.BASE_URL + 'models/iss.glb',
+        //     // called when the resource is loaded
+        //     function (gltf) {
 
-                iss = gltf.scene;
+        //         iss = gltf.scene;
 
-                iss.scale.set(1, 1, 1);
-                const v = calcPosFromLatLonRad(39.18098718905343, 126.66405697335942, 637.1 + 40);
-                iss.position.set(v.x, v.y, v.z);
-                iss.renderOrder = 3;
-                earthGroup.add(iss);
+        //         iss.scale.set(1, 1, 1);
+        //         const v = calcPosFromLatLonRad(39.18098718905343, 126.66405697335942, 637.1 + 40);
+        //         iss.position.set(v.x, v.y, v.z);
+        //         iss.renderOrder = 3;
+        //         earthGroup.add(iss);
 
-            },
-            // called while loading is progressing
-            function (xhr) {
+        //     },
+        //     // called while loading is progressing
+        //     function (xhr) {
 
-                // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+        //         // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
 
-            },
-            // called when loading has errors
-            function (error) {
+        //     },
+        //     // called when loading has errors
+        //     function (error) {
 
-                console.log('An error happened');
+        //         console.log('An error happened');
 
-            }
-        );
+        //     }
+        // );
 
         // Load Hwasong
         loader.load(
@@ -522,7 +522,7 @@ class App {
 
         fntLoader.load( import.meta.env.BASE_URL + 'assets/Knowledge Medium_Regular.json', function ( font ) {
             knowledgeFont = font;
-            generateText(font, "International\nSpace Station", 12, calcPosFromLatLonRad(39.8, 125.0, 637.1 + 42 ), earthGroup);
+            // generateText(font, "International\nSpace Station", 12, calcPosFromLatLonRad(39.8, 125.0, 637.1 + 42 ), earthGroup);
             generateText(font, "North Korea", 20, calcPosFromLatLonRad(37.81689349316444, 124.22657884591786, 640), earthGroup);
             generateText(font, "Pyongyang", 12, calcPosFromLatLonRad(39.036170458253565, 124.75861353308592, 640), earthGroup);
             generateText(font, "Hokkaido", 12, calcPosFromLatLonRad(42.78343327772553, 141.17912575432618, 640), earthGroup);
@@ -616,15 +616,15 @@ class App {
         effectFXAA.uniforms.resolution.value.set( 1/ window.innerWidth, 1 / window.innerHeight);
 
         const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0.60;
+        bloomPass.threshold = 0.80;
         bloomPass.strength = 0.5;
         bloomPass.radius = 1.0;
         bloomPass.renderToScreen = true;
 
         composer = new EffectComposer(renderer);
         composer.addPass(renderScene);
-        composer.addPass(effectFXAA);
-        composer.addPass(bloomPass);
+        // composer.addPass(effectFXAA);
+        // composer.addPass(bloomPass);
     }
 
 }
@@ -730,7 +730,7 @@ function initMarkers() {
     let markerInfo = []; // information on markers
     let gMarker = new THREE.PlaneGeometry(12, 12);
     let mMarker = new THREE.MeshBasicMaterial({
-    color: 0xff4400,
+    color: 0x111111,
     onBeforeCompile: (shader) => {
         shader.uniforms.time = globalUniforms.time;
         shader.vertexShader = `
@@ -815,7 +815,7 @@ function animate() {
     requestAnimationFrame(animate);
     render();
 
-    if (sheet.sequence.position >= 3.5 && clock.elapsedTime == 0) {
+    if (sheet.sequence.position >= 3 && clock.elapsedTime == 0) {
         clock.start();
     }
 
@@ -998,7 +998,7 @@ function renderTrail(progress) {
 
     for(let i = 0; i < pointBounds; i++) {
         lnPositions.push(points[i].x, points[i].y, points[i].z);
-        lnColor.setHSL(0.0, 1.0, 0.3);
+        lnColor.setHSL(0.1, 1.0, 0.5);
         colors.push(lnColor.r, lnColor.g, lnColor.b);
     }
 
