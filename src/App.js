@@ -393,93 +393,30 @@ class App {
 
         let earthTex;
 
-        // const ktx2Loader = new KTX2Loader();
-        // ktx2Loader.setTranscoderPath(import.meta.env.BASE_URL + 'js/');
-        // ktx2Loader.detectSupport(renderer);
-        // ktx2Loader.load( import.meta.env.BASE_URL + 'assets/world_minimal.ktx2', function ( texture ) {
+        const ktx2Loader = new KTX2Loader();
+        ktx2Loader.setTranscoderPath(import.meta.env.BASE_URL + 'js/');
+        ktx2Loader.detectSupport(renderer);
+        ktx2Loader.load( import.meta.env.BASE_URL + 'assets/world_minimal.ktx2', function ( texture ) {
 
-        //     // console.log("earth texs loaded", texture);
-        //     let earthGeo = new THREE.SphereGeometry(637.1, 64, 32);
-
-        //     const earthMap = texture;
-        //     earthMap.wrapT = THREE.RepeatWrapping;
-        //     earthMap.repeat.y = - 1;
-        //     earthMap.encoding = THREE.sRGBEncoding;
-        //     earthMap.anisotropy = 16;
-        //     let earthMat = new THREE.MeshStandardMaterial({
-        //         color: 0x666666,
-        //         map: earthMap, 
-        //         roughness: 0.8,
-        //         metalness: 0.6
-        //     });
-
-        //     earthMat.dithering = true;
-        //     earth = new THREE.Mesh(earthGeo, earthMat);
-        //     earth.position.set(0, 0, 0);
-
-        //     earthGroup.rotation.set((90 - 40.2868681868) * Math.PI / 180, (90 - 132.212711943) * Math.PI / 180, 0);
-        //     earthGroup.add(earth);
-        //     scene.add(earthGroup);
-
-        //     initMarkers();
-
-        //     resourceLoaded();
-        
-        // }, function () {
-        
-        //     console.log( 'onProgress' );
-        
-        // }, function ( e ) {
-        
-        //     console.error( e );
-        
-        // } );
-
-        const texture = Promise.all([texLoader.load( import.meta.env.BASE_URL + 'assets/world_minimal.png'), texLoader.load(import.meta.env.BASE_URL + 'assets/2k_earth_specular_map 1.jpg'), texLoader.load(import.meta.env.BASE_URL + 'assets/elev_bump_8k.jpeg')], (resolve, reject) => {
-            resolve(texture);
-        }).then(result => {
-            console.log("earth texs loaded");
-            // result in array of textures
+            // console.log("earth texs loaded", texture);
             let earthGeo = new THREE.SphereGeometry(637.1, 64, 32);
-            // let earthMat = new THREE.MeshBasicMaterial({color: 0xffccaa});
 
-            const earthMap = result[0]
+            const earthMap = texture;
+            earthMap.wrapT = THREE.RepeatWrapping;
+            earthMap.repeat.y = - 1;
             earthMap.encoding = THREE.sRGBEncoding;
-            // earthMap.anisotropy = 16;
-            // earthMap.generateMipmaps = false;
-            let earthMat = new THREE.MeshPhysicalMaterial({
+            earthMap.anisotropy = 16;
+            let earthMat = new THREE.MeshStandardMaterial({
                 color: 0x666666,
                 map: earthMap, 
                 roughness: 0.8,
                 metalness: 0.6
             });
-            earthMat.map.magFilter = THREE.LinearFilter;
-            // earthMat.map.generateMipmaps = false;
-            earthMat.map.minFilter = THREE.LinearMipMapLinearFilter;
-            earthMat.needsUpdate = true;
 
-            // earthMat.shading = THREE.SmoothShading;
             earthMat.dithering = true;
             earth = new THREE.Mesh(earthGeo, earthMat);
             earth.position.set(0, 0, 0);
 
-            // ---------------- To implement LOD ------------------------
-            // const lod = new THREE.LOD();
-            // //Create spheres with 3 levels of detail and create new LOD levels for them
-            // for( let i = 0; i < 5; i++ ) {
-
-            //     let earthGeo = new THREE.IcosahedronGeometry( 637.1, 5 - i )
-
-            //     const earthMesh = new THREE.Mesh( earthGeo, earthMat );
-
-            //     earthMesh.position.set(0, 0, 0);
-                
-            //     lod.addLevel( earthMesh, i * 750 );
-
-            // }
-
-            // adjusted manually to top-center region between NK and Japan
-            // midpoint between them 40.2868681868, 132.212711943
             earthGroup.rotation.set((90 - 40.2868681868) * Math.PI / 180, (90 - 132.212711943) * Math.PI / 180, 0);
             earthGroup.add(earth);
             scene.add(earthGroup);
@@ -487,31 +424,92 @@ class App {
             initMarkers();
 
             resourceLoaded();
+        
+        }, function () {
+        
+            console.log( 'onProgress' );
+        
+        }, function ( e ) {
+        
+            console.error( e );
+        
+        } );
 
-            // const customMaterial = new THREE.ShaderMaterial( 
-            //     {
-            //         uniforms: 
-            //         { 
-            //             "c":   { type: "f", value: 0.5 * 1.0 },
-            //             "p":   { type: "f", value: 15 * 1.0 },
-            //             glowColor: { type: "c", value: new THREE.Color(0x00aaff) },
-            //             viewVector: { type: "v3", value: animatingCamera.position }
-            //         },
-            //         vertexShader:   document.getElementById( 'vertexShader'   ).textContent,
-            //         fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
-            //         side: THREE.BackSide,
-            //         blending: THREE.AdditiveBlending,
-            //         transparent: true
-            //     }   );
+        // const texture = Promise.all([texLoader.load( import.meta.env.BASE_URL + 'assets/world_minimal.png'), texLoader.load(import.meta.env.BASE_URL + 'assets/2k_earth_specular_map 1.jpg'), texLoader.load(import.meta.env.BASE_URL + 'assets/elev_bump_8k.jpeg')], (resolve, reject) => {
+        //     resolve(texture);
+        // }).then(result => {
+        //     console.log("earth texs loaded");
+        //     // result in array of textures
+        //     let earthGeo = new THREE.SphereGeometry(637.1, 64, 32);
+        //     // let earthMat = new THREE.MeshBasicMaterial({color: 0xffccaa});
 
-            // let dummyMaterial = new THREE.MeshBasicMaterial({color: 0xffff00});
+        //     const earthMap = result[0]
+        //     earthMap.encoding = THREE.sRGBEncoding;
+        //     // earthMap.anisotropy = 16;
+        //     // earthMap.generateMipmaps = false;
+        //     let earthMat = new THREE.MeshPhysicalMaterial({
+        //         color: 0x666666,
+        //         map: earthMap, 
+        //         roughness: 0.8,
+        //         metalness: 0.6
+        //     });
+        //     earthMat.map.magFilter = THREE.LinearFilter;
+        //     // earthMat.map.generateMipmaps = false;
+        //     earthMat.map.minFilter = THREE.LinearMipMapLinearFilter;
+        //     earthMat.needsUpdate = true;
+
+        //     // earthMat.shading = THREE.SmoothShading;
+        //     earthMat.dithering = true;
+        //     earth = new THREE.Mesh(earthGeo, earthMat);
+        //     earth.position.set(0, 0, 0);
+
+        //     // ---------------- To implement LOD ------------------------
+        //     // const lod = new THREE.LOD();
+        //     // //Create spheres with 3 levels of detail and create new LOD levels for them
+        //     // for( let i = 0; i < 5; i++ ) {
+
+        //     //     let earthGeo = new THREE.IcosahedronGeometry( 637.1, 5 - i )
+
+        //     //     const earthMesh = new THREE.Mesh( earthGeo, earthMat );
+
+        //     //     earthMesh.position.set(0, 0, 0);
+                
+        //     //     lod.addLevel( earthMesh, i * 750 );
+
+        //     // }
+
+        //     // adjusted manually to top-center region between NK and Japan
+        //     // midpoint between them 40.2868681868, 132.212711943
+        //     earthGroup.rotation.set((90 - 40.2868681868) * Math.PI / 180, (90 - 132.212711943) * Math.PI / 180, 0);
+        //     earthGroup.add(earth);
+        //     scene.add(earthGroup);
+
+        //     initMarkers();
+
+        //     // const customMaterial = new THREE.ShaderMaterial( 
+        //     //     {
+        //     //         uniforms: 
+        //     //         { 
+        //     //             "c":   { type: "f", value: 0.5 * 1.0 },
+        //     //             "p":   { type: "f", value: 15 * 1.0 },
+        //     //             glowColor: { type: "c", value: new THREE.Color(0x00aaff) },
+        //     //             viewVector: { type: "v3", value: animatingCamera.position }
+        //     //         },
+        //     //         vertexShader:   document.getElementById( 'vertexShader'   ).textContent,
+        //     //         fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
+        //     //         side: THREE.BackSide,
+        //     //         blending: THREE.AdditiveBlending,
+        //     //         transparent: true
+        //     //     }   );
+
+        //     // let dummyMaterial = new THREE.MeshBasicMaterial({color: 0xffff00});
             
-            // earthGlow = new THREE.Mesh(new THREE.SphereGeometry(637.1, 64, 64), customMaterial);
-            // earthGlow.position.set(0, -637.1, 0);
-            // earthGlow.scale.multiplyScalar(1.1);
-            // earthGlow.geometry.computeVertexNormals(true);
-            // earthGroup.add(earthGlow);
-        });
+        //     // earthGlow = new THREE.Mesh(new THREE.SphereGeometry(637.1, 64, 64), customMaterial);
+        //     // earthGlow.position.set(0, -637.1, 0);
+        //     // earthGlow.scale.multiplyScalar(1.1);
+        //     // earthGlow.geometry.computeVertexNormals(true);
+        //     // earthGroup.add(earthGlow);
+        // });
 
         // load text object
         const fntLoader = new FontLoader();
@@ -834,6 +832,7 @@ function animate() {
         clock.stop();
     }
 
+    console.log(scene);
     render();
     requestAnimationFrame(animate);
 }
