@@ -915,9 +915,10 @@ function render() {
     let t = easingCurve(ti);
 
     // render trailing line
-    renderTrail(t);
-
-    renderHeightTickr(t);
+    if (clock.elapsedTime > 0) {
+        renderTrail(t);
+        renderHeightTickr(t);
+    }
 
     tubeGeometry.parameters.path.getPointAt(t, position);
     position.multiplyScalar(1);
