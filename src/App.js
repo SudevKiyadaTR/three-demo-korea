@@ -1036,11 +1036,12 @@ function renderHeightTickr(progress) {
     // hPosition.z = 2;
     // hPosition.x += 100;
     let tickrText = "";
-    if (progress < 0.96 && progress > 0) {
+    if (progress < 0.96) {
         tickrText = parseInt(Math.sin(progress * Math.PI) * 6248).toString() + ' kms';
     }
     generateText(knowledgeFont, tickrText, 12, hPosition, earthGroup, 'height');
 
+    console.log(earthGroup.children);
     // make all labels look at camera
     earthGroup.children.forEach(child => {
         if(child.name.includes('text_')) {
