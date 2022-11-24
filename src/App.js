@@ -47,6 +47,11 @@ const earthGroup = new THREE.Group();
 let playFlag = true;
 let resourcesLoaded = 0;
 
+const manager = new THREE.LoadingManager();
+
+// Instantiate a loader
+const loader = new GLTFLoader(manager);
+
 let globalUniforms = {
     time: { value: 0 }
 };
@@ -284,6 +289,8 @@ class App {
                     matcap: texture,
                 });
 
+                loadModels();
+
                 resourceLoaded();
 
                 // console.log("matcap loaded");
@@ -297,11 +304,6 @@ class App {
                 console.error('An error happened.');
             }
         );
-
-        const manager = new THREE.LoadingManager();
-
-        // Instantiate a loader
-        const loader = new GLTFLoader(manager);
 
         // Load ISS
         // loader.load(
@@ -332,63 +334,6 @@ class App {
 
         //     }
         // );
-
-        // Load Hwasong
-        loader.load(
-            // resource URL
-            import.meta.env.BASE_URL + 'models/missile.glb',
-            // called when the resource is loaded
-            function (gltf) {
-
-                missile = gltf.scene;
-
-                missile.traverse((o) => {
-                    if (o.isMesh) o.material = matcapMat;
-                });
-
-                missile.position.set(0, 0, 0);
-                missile.scale.set(5.0, 5.0, 5.0);
-                missile.renderOrder = 3;
-                earthGroup.add(missile);
-
-            },
-            // called while loading is progressing
-            function (xhr) {
-
-                // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-
-            },
-            // called when loading has errors
-            function (error) {
-
-                console.log('An error happened');
-
-            }
-        );
-
-        manager.onStart = function (url, itemsLoaded, itemsTotal) {
-            // console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
-        };
-
-        manager.onLoad = function () {
-            scene.add(textGroup);
-            theatre();
-
-            project.ready.then(() => {
-                console.log("project is ready");
-                // clock.start();
-                resourceLoaded();
-            });            
-        };
-
-
-        manager.onProgress = function (url, itemsLoaded, itemsTotal) {
-            // console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
-        };
-
-        manager.onError = function (url) {
-            console.log('There was an error loading ' + url);
-        };
 
         let earthTex;
 
@@ -621,6 +566,65 @@ class App {
 
 }
 
+function loadModels() {
+    // Load Hwasong
+    loader.load(
+        // resource URL
+        import.meta.env.BASE_URL + 'models/missile.glb',
+        // called when the resource is loaded
+        function (gltf) {
+
+            missile = gltf.scene;
+
+            missile.traverse((o) => {
+                if (o.isMesh) o.material = matcapMat;
+            });
+
+            missile.position.set(0, 0, 0);
+            missile.scale.set(5.0, 5.0, 5.0);
+            missile.renderOrder = 3;
+            earthGroup.add(missile);
+
+        },
+        // called while loading is progressing
+        function (xhr) {
+
+            // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+
+        },
+        // called when loading has errors
+        function (error) {
+
+            console.log('An error happened');
+
+        }
+    );
+
+    manager.onStart = function (url, itemsLoaded, itemsTotal) {
+        // console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+    };
+
+    manager.onLoad = function () {
+        scene.add(textGroup);
+        theatre();
+
+        project.ready.then(() => {
+            console.log("project is ready");
+            // clock.start();
+            resourceLoaded();
+        });            
+    };
+
+
+    manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+        // console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+    };
+
+    manager.onError = function (url) {
+        console.log('There was an error loading ' + url);
+    };
+}
+
 function calcPosFromLatLonRad(lat, lon, rad) {
     const phi   = (90 -  lat) * (Math.PI / 180);
     const theta = (lon + 180) * (Math.PI / 180);
@@ -830,7 +834,7 @@ function animate() {
         clock.stop();
     }
 
-    console.log(scene);
+    // console.log(scene);
     render();
     requestAnimationFrame(animate);
 }
