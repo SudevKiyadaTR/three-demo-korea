@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import * as POSTPROCESSING from 'postprocessing';
 import studio from '@theatre/studio';
 import {getProject, types} from '@theatre/core';
 import projectState from './state.json';
@@ -271,6 +270,34 @@ class App {
         // var envmap = new RGBELoader().load( "./assets/studio_small_06_4k.hdr" );
         // scene.environment = envmap;
 
+        const texLoader = new THREE.TextureLoader();
+
+        // load a resource
+        texLoader.load(
+            // resource URL
+            import.meta.env.BASE_URL + 'assets/yellow_matcap.png',
+
+            // onLoad callback
+            function (texture) {
+                // in this example we create the material when the texture is loaded
+                matcapMat = new THREE.MeshMatcapMaterial({
+                    matcap: texture,
+                });
+
+                resourceLoaded();
+
+                // console.log("matcap loaded");
+            },
+
+            // onProgress callback currently not supported
+            undefined,
+
+            // onError callback
+            function (err) {
+                console.error('An error happened.');
+            }
+        );
+
         const manager = new THREE.LoadingManager();
 
         // Instantiate a loader
@@ -362,34 +389,6 @@ class App {
         manager.onError = function (url) {
             console.log('There was an error loading ' + url);
         };
-
-        const texLoader = new THREE.TextureLoader();
-
-        // load a resource
-        texLoader.load(
-            // resource URL
-            import.meta.env.BASE_URL + 'assets/yellow_matcap.png',
-
-            // onLoad callback
-            function (texture) {
-                // in this example we create the material when the texture is loaded
-                matcapMat = new THREE.MeshMatcapMaterial({
-                    matcap: texture,
-                });
-
-                tubeMesh.material = matcapMat;
-
-                // console.log("matcap loaded");
-            },
-
-            // onProgress callback currently not supported
-            undefined,
-
-            // onError callback
-            function (err) {
-                console.error('An error happened.');
-            }
-        );
 
         let earthTex;
 
@@ -718,7 +717,7 @@ function theatre() {
 function resourceLoaded() {
     resourcesLoaded += 1;
 
-    if(resourcesLoaded == 2) {
+    if(resourcesLoaded === 3) {
         setTimeout(() => {
             console.log('now playing');
             sheet.sequence.play({iterationCount: 1, range: [0, 6] });
