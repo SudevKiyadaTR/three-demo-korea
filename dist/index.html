@@ -7,11 +7,45 @@
 			body {
 				margin: 0;
 			}
+
+			.label {
+				color: rgba(200, 200, 200, 0.8);
+				font-family: sans-serif;
+				padding: 2px;
+				filter: drop-shadow(0px 2px 4px black);
+			}
 		</style>
 		<script src="https://cdn.jsdelivr.net/npm/tweakpane@3.1.0/dist/tweakpane.min.js"></script>
 		
-		<script type="module" crossorigin src="/three-demo-korea/assets/index.8f3a0099.js"></script>
+		<script type="module" crossorigin src="/three-demo-korea/assets/index.4c1aeb9d.js"></script>
 	</head>
 <body>
+	<!-- ---------------- Custom Shader Code ------------------------ -->
+	<!-- <script id="vertexShader" type="x-shader/x-vertex">
+	uniform vec3 viewVector;
+	uniform float c;
+	uniform float p;
+	varying float intensity;
+	void main() 
+	{
+		vec3 vNormal = normalize( normalMatrix * normal );
+		vec3 vNormel = normalize( normalMatrix * viewVector );
+		intensity = pow( c - dot(vNormal, vNormel), p );
+		
+		gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+	}
+	</script> -->
+	
+	<!-- fragment shader a.k.a. pixel shader -->
+	<!-- <script id="fragmentShader" type="x-shader/x-vertex"> 
+	uniform vec3 glowColor;
+	varying float intensity;
+	void main() 
+	{
+		vec3 glow = glowColor * intensity;
+		gl_FragColor = vec4( glow, 0.5 );
+	}
+	</script> -->
+	<!-- ----------------------------------------------------------- -->
 </body>
 </html>
