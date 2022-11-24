@@ -723,7 +723,7 @@ function resourceLoaded() {
             console.log('now playing');
             sheet.sequence.play({iterationCount: 1, range: [0, 6] });
             animate();
-        }, 1000);
+        }, 500);
     }
 }
 
@@ -832,8 +832,8 @@ function animate() {
         clock.stop();
     }
 
-    requestAnimationFrame(animate);
     render();
+    requestAnimationFrame(animate);
 }
 
 function ease(x, m = 1) {
