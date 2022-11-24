@@ -342,9 +342,9 @@ class App {
 
                 missile = gltf.scene;
 
-                missile.traverse((o) => {
-                    if (o.isMesh) o.material = matcapMat;
-                });
+                // missile.traverse((o) => {
+                //     if (o.isMesh) o.material = matcapMat;
+                // });
 
                 missile.position.set(0, 0, 0);
                 missile.scale.set(5.0, 5.0, 5.0);
@@ -404,7 +404,6 @@ class App {
             earthMap.wrapT = THREE.RepeatWrapping;
             earthMap.repeat.y = - 1;
             earthMap.encoding = THREE.sRGBEncoding;
-            earthMap.anisotropy = 16;
             let earthMat = new THREE.MeshStandardMaterial({
                 color: 0x666666,
                 map: earthMap, 
@@ -799,7 +798,7 @@ function initMarkers() {
     new THREE.InstancedBufferAttribute(new Float32Array(phase), 1)
     );
 
-    // earthGroup.add(markers);
+    earthGroup.add(markers);
     // console.log('earthGrp');
     // console.log(earthGroup);
     // </Markers>
