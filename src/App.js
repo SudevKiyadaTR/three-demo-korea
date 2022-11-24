@@ -832,8 +832,8 @@ function animate() {
         clock.stop();
     }
 
-    render();
     requestAnimationFrame(animate);
+    render();
 }
 
 function ease(x, m = 1) {
