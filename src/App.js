@@ -165,6 +165,14 @@ function setupPane() {
 class App {
 
     init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        let w = window.innerWidth, h = window.innerHeight;
+
+        camera = new THREE.PerspectiveCamera( 35, w / h, 1, 2000 );
+
+        animatingCamera = new THREE.PerspectiveCamera( 35, w / h, 1, 2000 );
+
         // setupPane();
         if (import.meta.env.DEV) {
             // studio.extend(extension);
@@ -174,15 +182,6 @@ class App {
         // project = getProject('THREE.js x Theatre.js');
         project = getProject('THREE.js x Theatre.js', {state: projectState});
         sheet = project.sheet('animated scene');
-        
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000000);
-
-        let w = window.innerWidth, h = window.innerHeight;
-
-        camera = new THREE.PerspectiveCamera( 35, w / h, 1, 2000 );
-
-        animatingCamera = new THREE.PerspectiveCamera( 35, w / h, 1, 2000 );
 
         animatingCamera.position.set(0, 0, 0);
         animatingCamera.rotation.set(0, 2, 1.3);
@@ -413,10 +412,6 @@ class App {
                 roughness: 0.8,
                 metalness: 0.6
             });
-
-            earthMap.minFilter = THREE.LinearFilter;
-            earthMap.magFilter = THREE.NearestFilter;
-            earthMap.needsUpdate = true;
 
             earthMat.dithering = true;
             earth = new THREE.Mesh(earthGeo, earthMat);
