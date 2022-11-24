@@ -336,15 +336,15 @@ class App {
         // Load Hwasong
         loader.load(
             // resource URL
-            import.meta.env.BASE_URL + 'models/missile2.glb',
+            import.meta.env.BASE_URL + 'models/missile.glb',
             // called when the resource is loaded
             function (gltf) {
 
                 missile = gltf.scene;
 
-                // missile.traverse((o) => {
-                //     if (o.isMesh) o.material = matcapMat;
-                // });
+                missile.traverse((o) => {
+                    if (o.isMesh) o.material = matcapMat;
+                });
 
                 missile.position.set(0, 0, 0);
                 missile.scale.set(5.0, 5.0, 5.0);
