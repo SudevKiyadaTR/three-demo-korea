@@ -46,6 +46,7 @@ let heightTickr;
 const earthGroup = new THREE.Group();
 let playFlag = true;
 let resourcesLoaded = 0;
+const looptime = 30;
 
 const manager = new THREE.LoadingManager();
 
@@ -100,70 +101,6 @@ const godrayRenderTargetResolutionMultiplier = 1.0 / 4.0;
 
 let project, sheet;
 
-
-const PARAMS = {
-    offset: 0.12,
-    lookAhead: false,
-    earthColor: 0x030303
-};
-
-const pane = new Tweakpane.Pane();
-
-function setupPane() {
-    pane.addInput(PARAMS, 'offset', {
-        min: 0,
-        max: 5,
-        step: 0.01
-    });
-    
-    pane.addInput(PARAMS, 'lookAhead');
-    
-    const defaultBtn = pane.addButton({
-        title: 'Default Camera'
-    });
-    
-    defaultBtn.on('click', () => {
-        flagDefaultCamera = true;
-        flagVerticalCamera = false;
-        flagBirdEyeView = false;
-    });
-    
-    const verticalBtn = pane.addButton({
-        title: 'Vertical Camera'
-    });
-    
-    verticalBtn.on('click', () => {
-        flagDefaultCamera = false;
-        flagVerticalCamera = true;
-        flagBirdEyeView = false;
-    });
-    
-    
-    const birdViewBtn = pane.addButton({
-        title: 'BirdEyeView'
-    });
-    
-    birdViewBtn.on('click', () => {
-        flagDefaultCamera = false;
-        flagVerticalCamera = false;
-        flagBirdEyeView = true;
-    });
-    
-    const restartBtn = pane.addButton({
-        title: 'Restart'
-    });
-    
-    restartBtn.on('click', () => {
-        reset();
-    });
-    
-    pane.addInput(PARAMS, 'earthColor', {
-        view: 'color',
-    }).on("change", (ev) => {
-        earth.material.color.setHex(PARAMS.earthColor);
-    });
-}
-
 // main function --------------------------------------------------------
 
 class App {
@@ -181,7 +118,7 @@ class App {
         if (import.meta.env.DEV) {
             // studio.extend(extension);
             studio.initialize();
-            // studio.ui.hide();
+            studio.ui.hide();
         }
         // project = getProject('THREE.js x Theatre.js');
         project = getProject('THREE.js x Theatre.js', {state: projectState});
@@ -189,15 +126,6 @@ class App {
 
         animatingCamera.position.set(0, 0, 0);
         animatingCamera.rotation.set(0, 2, 1.3);
-        // cameraHelper = new THREE.CameraHelper( animatingCamera );
-        // scene.add( cameraHelper );
-
-        // const light = new THREE.AmbientLight(0xA0A0A0, 4); // soft white light
-        // scene.add(light);
-
-        // let directionalLight = new THREE.DirectionalLight(0x999999, 2);
-        // directionalLight.position.set(0, 1, 0);
-        // scene.add(directionalLight);
 
         RectAreaLightUniformsLib.init();
         const width = 800;
@@ -207,7 +135,6 @@ class App {
         rectLight.position.set( 0, 1400, 0 );
         rectLight.lookAt( 0, 0, 0 );
         scene.add( rectLight );
-        // scene.add( new RectAreaLightHelper( rectLight ) );
 
         const material = new THREE.LineBasicMaterial({
             color: 0x0000ff
@@ -225,7 +152,7 @@ class App {
         // midpoint between them 40.2868681868, 132.212711943
 
         const p1 = calcPosFromLatLonRad(39.18098718905343, 125.66405697335942, 637.1);
-        const p2 = calcPosFromLatLonRad(41.39274918458668, 138.76136691354355, 637.1);
+        const p2 = calcPosFromLatLonRad(41.39274918458668, 138.76136691354355, 635.1);
         const cp = calcPosFromLatLonRad((39.18098718905343 + 41.39274918458668) / 2, (125.66405697335942 + 138.76136691354355) / 2, 637.1 + 624.8);
         const point1 = [p1.x, p1.y, p1.z]; // Point 1 coordinates
         const point2 = [p2.x, p2.y, p2.z]; // Point 2 coordinates
@@ -250,30 +177,6 @@ class App {
         tubeMesh = new THREE.Mesh(tubeGeometry, tubeMaterial);
         const wireframe = new THREE.Mesh(tubeGeometry, wireframeMaterial);
         tubeMesh.add(wireframe);
-        // scene.add( tubeMesh );
-
-        splineCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 151000);
-        scene.add(splineCamera);
-
-        birdViewCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.01, 151000);
-        scene.add(birdViewCamera);
-
-        // const axesHelper = new THREE.AxesHelper( 2000 );
-        // scene.add( axesHelper );
-
-        // // Generate material
-        // const lineMaterial = new THREE.LineBasicMaterial({
-        //     color: 0xff0000,
-        //     linewidth: 1,
-        //     linecap: 'round', //ignored by WebGLRenderer
-        //     linejoin: 'round' //ignored by WebGLRenderer
-        // });
-
-        // const mesh = new THREE.Line(lineGeometry, lineMaterial);
-        // scene.add(mesh);
-
-        // var envmap = new RGBELoader().load( "./assets/studio_small_06_4k.hdr" );
-        // scene.environment = envmap;
 
         const texLoader = new THREE.TextureLoader();
 
@@ -304,36 +207,6 @@ class App {
                 console.error('An error happened.');
             }
         );
-
-        // Load ISS
-        // loader.load(
-        //     // resource URL
-        //     import.meta.env.BASE_URL + 'models/iss.glb',
-        //     // called when the resource is loaded
-        //     function (gltf) {
-
-        //         iss = gltf.scene;
-
-        //         iss.scale.set(1, 1, 1);
-        //         const v = calcPosFromLatLonRad(39.18098718905343, 126.66405697335942, 637.1 + 40);
-        //         iss.position.set(v.x, v.y, v.z);
-        //         iss.renderOrder = 3;
-        //         earthGroup.add(iss);
-
-        //     },
-        //     // called while loading is progressing
-        //     function (xhr) {
-
-        //         // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-
-        //     },
-        //     // called when loading has errors
-        //     function (error) {
-
-        //         console.log('An error happened');
-
-        //     }
-        // );
 
         let earthTex;
 
@@ -378,82 +251,6 @@ class App {
         
         } );
 
-        // const texture = Promise.all([texLoader.load( import.meta.env.BASE_URL + 'assets/world_minimal.png'), texLoader.load(import.meta.env.BASE_URL + 'assets/2k_earth_specular_map 1.jpg'), texLoader.load(import.meta.env.BASE_URL + 'assets/elev_bump_8k.jpeg')], (resolve, reject) => {
-        //     resolve(texture);
-        // }).then(result => {
-        //     console.log("earth texs loaded");
-        //     // result in array of textures
-        //     let earthGeo = new THREE.SphereGeometry(637.1, 64, 32);
-        //     // let earthMat = new THREE.MeshBasicMaterial({color: 0xffccaa});
-
-        //     const earthMap = result[0]
-        //     earthMap.encoding = THREE.sRGBEncoding;
-        //     // earthMap.anisotropy = 16;
-        //     // earthMap.generateMipmaps = false;
-        //     let earthMat = new THREE.MeshPhysicalMaterial({
-        //         color: 0x666666,
-        //         map: earthMap, 
-        //         roughness: 0.8,
-        //         metalness: 0.6
-        //     });
-        //     earthMat.map.magFilter = THREE.LinearFilter;
-        //     // earthMat.map.generateMipmaps = false;
-        //     earthMat.map.minFilter = THREE.LinearMipMapLinearFilter;
-        //     earthMat.needsUpdate = true;
-
-        //     // earthMat.shading = THREE.SmoothShading;
-        //     earthMat.dithering = true;
-        //     earth = new THREE.Mesh(earthGeo, earthMat);
-        //     earth.position.set(0, 0, 0);
-
-        //     // ---------------- To implement LOD ------------------------
-        //     // const lod = new THREE.LOD();
-        //     // //Create spheres with 3 levels of detail and create new LOD levels for them
-        //     // for( let i = 0; i < 5; i++ ) {
-
-        //     //     let earthGeo = new THREE.IcosahedronGeometry( 637.1, 5 - i )
-
-        //     //     const earthMesh = new THREE.Mesh( earthGeo, earthMat );
-
-        //     //     earthMesh.position.set(0, 0, 0);
-                
-        //     //     lod.addLevel( earthMesh, i * 750 );
-
-        //     // }
-
-        //     // adjusted manually to top-center region between NK and Japan
-        //     // midpoint between them 40.2868681868, 132.212711943
-        //     earthGroup.rotation.set((90 - 40.2868681868) * Math.PI / 180, (90 - 132.212711943) * Math.PI / 180, 0);
-        //     earthGroup.add(earth);
-        //     scene.add(earthGroup);
-
-        //     initMarkers();
-
-        //     // const customMaterial = new THREE.ShaderMaterial( 
-        //     //     {
-        //     //         uniforms: 
-        //     //         { 
-        //     //             "c":   { type: "f", value: 0.5 * 1.0 },
-        //     //             "p":   { type: "f", value: 15 * 1.0 },
-        //     //             glowColor: { type: "c", value: new THREE.Color(0x00aaff) },
-        //     //             viewVector: { type: "v3", value: animatingCamera.position }
-        //     //         },
-        //     //         vertexShader:   document.getElementById( 'vertexShader'   ).textContent,
-        //     //         fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
-        //     //         side: THREE.BackSide,
-        //     //         blending: THREE.AdditiveBlending,
-        //     //         transparent: true
-        //     //     }   );
-
-        //     // let dummyMaterial = new THREE.MeshBasicMaterial({color: 0xffff00});
-            
-        //     // earthGlow = new THREE.Mesh(new THREE.SphereGeometry(637.1, 64, 64), customMaterial);
-        //     // earthGlow.position.set(0, -637.1, 0);
-        //     // earthGlow.scale.multiplyScalar(1.1);
-        //     // earthGlow.geometry.computeVertexNormals(true);
-        //     // earthGroup.add(earthGlow);
-        // });
-
         // load text object
         const fntLoader = new FontLoader();
 
@@ -466,47 +263,6 @@ class App {
             generateText(font, "Japan", 20, calcPosFromLatLonRad(35.772943512663176, 137.8048990566746, 640), earthGroup);
             generateText(font, "height", 12, points[0], earthGroup);
         } );
-
-        // // load a resource
-        // texLoader.load(
-        //     // resource URL
-        //     '../assets/2k_earth_daymap.jpeg.jpeg',
-
-        //     // onLoad callback
-        //     function (texture) {
-        //         // in this example we create the material when the texture is loaded
-        //         earthTex = texture;
-        //         let earthGeo = new THREE.SphereGeometry(637.1, 32, 24);
-        //         // let earthMat = new THREE.MeshBasicMaterial({color: 0xffccaa});
-        //         let earthMat = new THREE.MeshPhysicalMaterial({
-        //             map: earthTex,
-        //             roughness: 0.48,
-        //             metalness: 0.478,
-        //             reflectivity: 0.189,
-        //             clearcoat: 0.
-        //         });
-        //         earthMat.shading = THREE.SmoothShading;
-        //         earth = new THREE.Mesh(earthGeo, earthMat);
-        //         earth.position.set(0, -637.1, 0);
-        //         scene.add(earth);
-        //     },
-
-        //     // onProgress callback currently not supported
-        //     undefined,
-
-        //     // onError callback
-        //     function (err) {
-        //         console.error('An error happened.');
-        //     }
-        // );
-
-        let circleGeo = new THREE.CircleGeometry(220, 50);
-        let circleMat = new THREE.MeshBasicMaterial({ color: 0xffccaa });
-        let circle = new THREE.Mesh(circleGeo, circleMat);
-        circle.position.set(1500, 500, 0);
-        circle.scale.setX(1.2);
-        circle.lookAt(new THREE.Vector3(0, 0, 0));
-        // scene.add(circle);
 
         // renderer.toneMappingExposure = Math.pow(0.7, 1.0);
         renderer.outputEncoding = THREE.sRGBEncoding;
@@ -528,23 +284,12 @@ class App {
         labelRenderer.domElement.style.top = '0px';
         document.body.appendChild( labelRenderer.domElement );
 
-        //HDRI LOADER
-        // var envmaploader = new THREE.PMREMGenerator(renderer);
-        // const loadhdri = new RGBELoader().load("../assets/starmap_4k.hdr", function (texture) {
-        //     texture.mapping = THREE.EquirectangularReflectionMapping;
-        //     scene.background = texture;
-        //     scene.environment = texture;
-        //     scene.envmap
-        // });
-
         controls = new OrbitControls( animatingCamera, renderer.domElement );
         controls.enablePan = true;
         controls.enableZoom = true;
         controls.maxDistance = 2000;
         controls.autoRotate = false;
         controls.zoomSpeed = 5;
-        // controls.object.position.set(0, 100, 700);
-        // controls.target = new THREE.Vector3(0, 100, 0);
         controls.update();
 
         const renderScene = new RenderPass(scene, animatingCamera);
@@ -583,6 +328,7 @@ function loadModels() {
             missile.position.set(0, 0, 0);
             missile.scale.set(5.0, 5.0, 5.0);
             missile.renderOrder = 3;
+            missile.lookAt(new THREE.Vector3(0, 100, 0));
             earthGroup.add(missile);
 
         },
@@ -650,11 +396,6 @@ function theatre() {
             y: types.number(animatingCamera.rotation.y, { range: [-2, 2] }),
             z: types.number(animatingCamera.rotation.z, { range: [-2, 2] })
         }),
-        // lookAt: types.compound({
-        //     x: types.number(camera.lookAt.x, { range: [-1000, 1000] }),
-        //     y: types.number(camera.lookAt.y, { range: [-2, 1200] }),
-        //     z: types.number(camera.lookAt.z, { range: [-1000, 1000] })
-        // })
     });
 
     cameraObj.onValuesChange((values) => {
@@ -662,19 +403,12 @@ function theatre() {
         const rx = values.rotation.x;
         const ry = values.rotation.y;
         const rz = values.rotation.z;
-        // const {lx, ly, lz} = values.lookAt;
         
         animatingCamera.fov = values.fov;
         animatingCamera.position.set(x, y, z);
         if(animatingCamera)
             animatingCamera.rotation.set(rx * Math.PI, ry * Math.PI, rz * Math.PI);
-        // animatingCamera.lookAt(missile);
-        // controls.target = new THREE.Vector3(0, y, 0);
         animatingCamera.updateProjectionMatrix();
-        // console.log(animatingCamera.position, cameraHelper.camera.position);
-        // controls.object.target = new THREE.Vector3(x, Math.random() * y, 0);
-
-        // controls.update();
     });
 
     const earthObj = sheet.object('earthGroup', {
@@ -699,21 +433,13 @@ function theatre() {
         earthGroup.rotation.set((90 - 40.2868681868) * Math.PI / 180, (90 - 132.212711943) * Math.PI / 180, 0);
 
         // x-axis rotation
-        // quaternion.setFromAxisAngle( new THREE.Vector3( 1.0,0,0 ), phi );
-        // earthGroup.applyQuaternion(quaternion);
         earthGroup.rotateOnWorldAxis(new THREE.Vector3( 1.0,0,0 ), phi);
 
         // y-axis rotation
-        // quaternion.setFromAxisAngle( new THREE.Vector3( 0,1.0,0 ), theta);
-        // earthGroup.applyQuaternion(quaternion);
         earthGroup.rotateOnWorldAxis(new THREE.Vector3( 0,1.0,0 ), theta);
 
         // z-axis rotation
-        // quaternion.setFromAxisAngle( new THREE.Vector3( 0,0,1.0 ), z);
-        // earthGroup.applyQuaternion(quaternion);
         earthGroup.rotateOnWorldAxis(new THREE.Vector3( 0,0,1.0 ), z);
-
-        // earthGroup.rotation.set(phi, theta, z);
     });
 }
 
@@ -722,7 +448,7 @@ function resourceLoaded() {
 
     if(resourcesLoaded === 3) {
             console.log('now playing');
-            sheet.sequence.play({iterationCount: 1, range: [0, 7] });
+            sheet.sequence.play({iterationCount: 1, range: [0, 9] });
             animate();
     }
 }
@@ -808,106 +534,70 @@ function initMarkers() {
 
 function onWindowResize() {
 
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
+    animatingCamera.aspect = window.innerWidth / window.innerHeight;
+    animatingCamera.updateProjectionMatrix();
 
     renderer.setSize(window.innerWidth, window.innerHeight);
 
 }
 
 function animate() {
-    const looptime = 20;
-    // controls.update();
 
-    if (sheet.sequence.position >= 3 && clock.elapsedTime == 0) {
+    if (sheet.sequence.position >= 2.75 && clock.elapsedTime == 0) {
         clock.start();
     }
 
-    if(clock.elapsedTime >= 16 && playFlag) {
-        sheet.sequence.play({iterationCount: 1, range: [7, 12]});
+    if(clock.elapsedTime >= 25 && playFlag) {
+        sheet.sequence.play({iterationCount: 1, range: [9, 16]});
         playFlag = false;
     }
 
     if(((clock.elapsedTime + 0.01) / looptime) > 1) {
+        missile.visible = false;
         clock.stop();
     }
 
-    // console.log(scene);
+    
     render();
+    animateCSSText();
     requestAnimationFrame(animate);
 }
 
-function ease(x, m = 1) {
-    if (x <= 0.51){
-        return easeOutCubic(x * m) * 0.5;
-    } else {
-        return easeInCubic(((x) % 0.5) * 2) * 0.5 + 0.5;
-    }
-}
+function animateCSSText() {
+    const time = sheet.sequence.position;
 
-function easeOutCubic(x) {
-    return 1 - Math.pow(1 - x, 5);
-}
+    const pyongyang_label = document.getElementById('label_Pyongyang');
+    const hokkaido_label = document.getElementById('label_Hokkaido');
 
-function easeInCubic(x) {
-    return x*x*x*x*x;
+    pyongyang_label.style.opacity = Math.sin(Math.pow(time / 8, 1) * (Math.PI + Math.PI / 4)) / 2 + 0.5;
+    hokkaido_label.style.opacity = Math.sin(Math.pow(time / 8, 1) * (Math.PI + Math.PI / 4)) / 2 + 0.5;
 }
 
 function reset() {
-    // scene.remove(missile);
-    // scene.remove(missileBase);
-    // scene.remove(missileBaseR);
-    // scene.remove(missileBaseL);
-    // scene.remove(stageTwo);
-    // missileBase = null;
-    // missileBaseTrajectory = null;
-    // stageTwoTrajectory = null;
-    // missile = new THREE.Object3D();
-    // missile = missileOrig.clone();
-    // scene.add(missile);
     clock.stop();
     clock.start();
-    // stageOneClock.stop();
-    // stageTwoClock.stop();
 }
 
 function generateText(font, message, fontSize, position, parent, name=message) {
-    // const shapes = font.generateShapes( message, fontSize );
-
-    // const textGeo = new THREE.ShapeGeometry( shapes );
-
-    // textGeo.computeBoundingBox();
-
-    // const centerOffset = - 0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
-
-    // const textMat = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide});
-
-    // const textMesh = new THREE.Mesh( textGeo, textMat );
 
     const textContainer = document.createElement( 'div' );
-    textContainer.style.filter = 'drop-shadow(0px 2px 4px black)';
+    textContainer.style.filter = 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.5))';
     const labelContainer = document.createElement( 'div' );
     textContainer.appendChild(labelContainer);
-    labelContainer.style.filter = 'drop-shadow(0px 2px 4px black)';
+    labelContainer.style.filter = 'drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.5))';
     labelContainer.className = 'label';
+    labelContainer.id = "label_" + message;
     labelContainer.textContent = (message === 'height') ? '' : message;
     labelContainer.style.marginTop = '-1em';
     labelContainer.style.fontSize = fontSize + 'px';
     const label = new CSS2DObject( textContainer );
     label.name = 'text_' + name;
+
     if(label.name == 'text_height')
         labelContainer.style.marginLeft = '6em';
+    
     label.position.set( position.x, position.y, position.z );
     parent.add( label );
-    
-    // textMesh.position.set(centerOffset + position.x, position.y, position.z);
-
-    // textMesh.name = "text_" + name;
-
-    // textMesh.renderOrder = 2;
-
-    // parent.add(textMesh);
-
 }
 
 window.onkeydown = ((e) => {
@@ -920,7 +610,6 @@ function render() {
     globalUniforms.time.value = waveClock.getElapsedTime();
 
     const time = clock.getElapsedTime();
-    const looptime = 20 * 1;
     let ti = (time) / looptime;
     let t = easingCurve(ti);
 
@@ -941,60 +630,31 @@ function render() {
     const pickt = t * segments;
     const pick = Math.floor(pickt);
     const pickNext = (pick) % segments;
-    const missileNext = (pick + 1) % segments;
-
-    binormal.subVectors(tubeGeometry.binormals[pickNext], tubeGeometry.binormals[pick]);
-    binormal.multiplyScalar(pickt - pick).add(tubeGeometry.binormals[pick]);
 
     missileBinormal.subVectors(tubeGeometry.binormals[pickNext], tubeGeometry.binormals[pick]);
     missileBinormal.multiplyScalar(pickt - pick).add(tubeGeometry.binormals[pick]);
 
-    tubeGeometry.parameters.path.getTangentAt(t, direction);
     tubeGeometry.parameters.path.getTangentAt(t, missileDirection);
-    const offset = PARAMS.offset;
 
-    normal.copy(binormal).cross(direction);
     missileNormal.copy(missileBinormal).cross(missileDirection);
 
-    // we move on a offset on its binormal
-
-    position.add(normal.clone().multiplyScalar(offset));
     missilePosition.add(missileNormal.clone().multiplyScalar(0));
 
-    // splineCamera.position.copy(position);
-    // missile.position.copy(missilePosition);
     missile.position.set(points[pick].x, points[pick].y, points[pick].z);
-    // birdViewCamera.position.copy(position);
 
-    // using arclength for stablization in look ahead
-
-    tubeGeometry.parameters.path.getPointAt((t + 30 / tubeGeometry.parameters.path.getLength()) % 1, lookAt);
-    lookAt.multiplyScalar(1);
-
-    // change this to control where the missile looks at or points at
-    tubeGeometry.parameters.path.getPointAt((t + 1 / tubeGeometry.parameters.path.getLength()) % 1, missileLookAt);
+    tubeGeometry.parameters.path.getPointAt((t + 10 / tubeGeometry.parameters.path.getLength()) % 1, missileLookAt);
     missileLookAt.multiplyScalar(1);
 
-    // camera orientation 2 - up orientation via normal
-
-    // if (!PARAMS.lookAhead) lookAt.copy(position).add(direction);
-    // if (flagVerticalCamera)
-    //     splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt(t + 0.001), normal);
-    // else if (flagDefaultCamera)
-    //     splineCamera.matrix.lookAt(splineCamera.position, lookAt, normal);
-    // else if (flagBirdEyeView)
-    //     splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt(t + 1), new THREE.Vector3(0, 1, 0));
-
-    // splineCamera.quaternion.setFromRotationMatrix(splineCamera.matrix);
-    missile.matrix.lookAt(missile.position, missileLookAt, missileNormal);
-    missile.quaternion.setFromRotationMatrix(missile.matrix);
+    if(t > 0) {
+        missile.matrix.lookAt(missile.position, missileLookAt, missileNormal);
+        missile.quaternion.setFromRotationMatrix(missile.matrix);
+    }
 
     // to reset animation
     // if (ti >= 1.0)
     //     reset();
 
     composer.render();
-    // renderer.render(scene, animatingCamera);
     labelRenderer.render( scene, animatingCamera );
 }
 
@@ -1025,7 +685,7 @@ function renderTrail(progress) {
 
     const lnMaterial = new LineMaterial({
         color: 0xffffff,
-        linewidth: 0.0009,
+        linewidth: 0.0006,
         vertexColors: true,
         dashed: false,
         alphaToCoverage: false,
@@ -1043,24 +703,13 @@ function renderHeightTickr(progress) {
     earthGroup.remove(heightTickr);
     const currPosition = Math.floor(points.length * progress);
     const hPosition = points[currPosition].clone();
-    // hPosition.z = 2;
-    // hPosition.x += 100;
+
     let tickrText = "";
     if (progress < 0.96 && progress > 0) {
         tickrText = parseInt(Math.sin(progress * Math.PI) * 6248).toString() + ' kms';
     }
-    generateText(knowledgeFont, tickrText, 12, hPosition, earthGroup, 'height');
 
-    // console.log(earthGroup.children);
-    // make all labels look at camera
-    earthGroup.children.forEach(child => {
-        if(child.name.includes('text_')) {
-            // const cameraPosition = animatingCamera.position.clone();
-            child.lookAt(animatingCamera.position);
-            // child.rotation.setFromRotationMatrix( animatingCamera.matrix );
-            // child.lookAt(new THREE.Vector3(cameraPosition.x, cameraPosition.y + 500, cameraPosition.z + 200));
-        }
-    });
+    generateText(knowledgeFont, tickrText, 12, hPosition, earthGroup, 'height');
 }
 
 export default App;

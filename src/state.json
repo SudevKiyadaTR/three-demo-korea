@@ -28,7 +28,7 @@
       },
       "sequence": {
         "subUnitsPerUnit": 30,
-        "length": 12,
+        "length": 16,
         "type": "PositionalSequence",
         "tracksByObject": {
           "CameraObj": {
@@ -63,7 +63,7 @@
                   },
                   {
                     "id": "ZYvAAWA_Px",
-                    "position": 12,
+                    "position": 16,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -117,7 +117,7 @@
                   },
                   {
                     "id": "rsq8XTIrR_",
-                    "position": 7,
+                    "position": 9,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -129,7 +129,7 @@
                   },
                   {
                     "id": "dkK6TkUj1Y",
-                    "position": 9,
+                    "position": 12,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -141,7 +141,7 @@
                   },
                   {
                     "id": "GtVQL4b8Nx",
-                    "position": 12,
+                    "position": 16,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -183,7 +183,7 @@
                   },
                   {
                     "id": "ePz8TqacBh",
-                    "position": 7,
+                    "position": 9,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -195,7 +195,7 @@
                   },
                   {
                     "id": "-1PrdmD5K5",
-                    "position": 12,
+                    "position": 16,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -225,7 +225,7 @@
                   },
                   {
                     "id": "X7fNF7dRjb",
-                    "position": 7,
+                    "position": 9,
                     "connectedRight": true,
                     "handles": [
                       0.256,
@@ -237,7 +237,7 @@
                   },
                   {
                     "id": "_IcBrRUCPk",
-                    "position": 12,
+                    "position": 16,
                     "connectedRight": true,
                     "handles": [
                       0.542,
@@ -320,7 +320,7 @@
                   },
                   {
                     "id": "IYX-A_SEWK",
-                    "position": 7,
+                    "position": 9,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -332,7 +332,7 @@
                   },
                   {
                     "id": "tU_6Fmrq1t",
-                    "position": 12,
+                    "position": 16,
                     "connectedRight": true,
                     "handles": [
                       0.5,
@@ -368,6 +368,8 @@
   },
   "definitionVersion": "0.4.0",
   "revisionHistory": [
+    "GQz9id0YXavYEdmA",
+    "I9j_irhaeiGw0f1M",
     "IHTifnY-HzzxGToW",
     "6KfSbKl4MWcSZ87u",
     "2PCgkfRsPKeUtgyF",

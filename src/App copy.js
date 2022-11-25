@@ -1,8 +1,7 @@
 import * as THREE from 'three';
-import * as POSTPROCESSING from 'postprocessing';
 import studio from '@theatre/studio';
-import {getProject, types, val} from '@theatre/core';
-// import projectState from './state.json';
+import {getProject, types} from '@theatre/core';
+import projectState from './state.json';
 
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
@@ -16,16 +15,17 @@ import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js';
-import * as BezierEasing from 'bezier-easing';
-import { DoubleSide } from 'three';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
+import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
+import BazierEasing from 'bezier-easing';
 
-const easingCurve = BezierEasing(0, 1.0, 0.5, 0.0);
+const easingCurve = BazierEasing(0.00, 0.40, 1.00, 0.70);
 const bgColor = 0x000000;
 const sunColor = 0xffee00;
 const screenSpacePosition = new THREE.Vector3();
 const clipPosition = new THREE.Vector3();
 const postprocessing = { enabled: true };
-let scene, camera, renderer;
+let scene, camera, renderer, labelRenderer;
 let land, earth, sun, composer, controls, missile;
 let lineCurve, lineGeometry, parent, splineCamera, cameraHelper, cameraEye, birdViewCamera;
 let flagDefaultCamera = true, flagBirdEyeView = false, flagVerticalCamera = false;
@@ -43,10 +43,18 @@ let renderPass, effectPass, godraysEffect;
 let trailLine;
 let knowledgeFont;
 let heightTickr;
-let earthGeo, earthPlane, spherePlane;
-let earthT;
 const earthGroup = new THREE.Group();
-let earthRot = new THREE.Vector3(0, 0, 0);
+let playFlag = true;
+let resourcesLoaded = 0;
+
+const manager = new THREE.LoadingManager();
+
+// Instantiate a loader
+const loader = new GLTFLoader(manager);
+
+let globalUniforms = {
+    time: { value: 0 }
+};
 
 let trajectoryPath;
 
@@ -76,6 +84,9 @@ const tubeMaterial = new THREE.MeshLambertMaterial({ color: 0xff00ff });
 const wireframeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0.3, wireframe: true, transparent: true });
 
 let clock = new THREE.Clock();
+clock.stop();
+let waveClock = new THREE.Clock();
+waveClock.start();
 let stageOneClock = new THREE.Clock();
 let stageTwoClock = new THREE.Clock();
 
@@ -158,22 +169,23 @@ function setupPane() {
 class App {
 
     init() {
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        let w = window.innerWidth, h = window.innerHeight;
+
+        camera = new THREE.PerspectiveCamera( 35, w / h, 1, 2000 );
+
+        animatingCamera = new THREE.PerspectiveCamera( 35, w / h, 1, 2000 );
+
         // setupPane();
         if (import.meta.env.DEV) {
             // studio.extend(extension);
             studio.initialize();
+            // studio.ui.hide();
         }
-        project = getProject('THREE.js x Theatre.js');
+        // project = getProject('THREE.js x Theatre.js');
+        project = getProject('THREE.js x Theatre.js', {state: projectState});
         sheet = project.sheet('animated scene');
-        
-        scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x000000);
-
-        let w = window.innerWidth, h = window.innerHeight;
-
-        camera = new THREE.PerspectiveCamera( 35, w / h, 1, 4000 );
-
-        animatingCamera = new THREE.PerspectiveCamera( 35, w / h, 1, 4000 );
 
         animatingCamera.position.set(0, 0, 0);
         animatingCamera.rotation.set(0, 2, 1.3);
@@ -190,7 +202,7 @@ class App {
         RectAreaLightUniformsLib.init();
         const width = 800;
         const height = 250;
-        const intensity = 20;
+        const intensity = 30;
         const rectLight = new THREE.RectAreaLight( 0x999999, intensity,  width, height );
         rectLight.position.set( 0, 1400, 0 );
         rectLight.lookAt( 0, 0, 0 );
@@ -199,6 +211,13 @@ class App {
 
         const material = new THREE.LineBasicMaterial({
             color: 0x0000ff
+        });
+
+        renderer = new THREE.WebGLRenderer({
+            powerPreference: "high-performance",
+            antialias: true,
+            stencil: false,
+            depth: false
         });
 
         // Pyongyang ICBM facility 39.18098718905343, 125.66405697335942
@@ -256,100 +275,6 @@ class App {
         // var envmap = new RGBELoader().load( "./assets/studio_small_06_4k.hdr" );
         // scene.environment = envmap;
 
-        const manager = new THREE.LoadingManager();
-
-        // Instantiate a loader
-        const loader = new GLTFLoader(manager);
-
-        // Load ISS
-        loader.load(
-            // resource URL
-            import.meta.env.BASE_URL + 'models/iss.glb',
-            // called when the resource is loaded
-            function (gltf) {
-
-                iss = gltf.scene;
-
-                iss.scale.set(1, 1, 1);
-                const v = calcPosFromLatLonRad(39.18098718905343, 126.66405697335942, 637.1 + 40);
-                iss.position.set(v.x, v.y, v.z);
-                earthGroup.add(iss);
-
-            },
-            // called while loading is progressing
-            function (xhr) {
-
-                // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-
-            },
-            // called when loading has errors
-            function (error) {
-
-                console.log('An error happened');
-
-            }
-        );
-
-        // Load Hwasong
-        loader.load(
-            // resource URL
-            import.meta.env.BASE_URL + 'models/missile2.glb',
-            // called when the resource is loaded
-            function (gltf) {
-
-                missile = gltf.scene;
-
-                missile.traverse((o) => {
-                    if (o.isMesh) o.material = matcapMat;
-                });
-
-                missile.position.set(0, 0, 0);
-                missile.scale.set(5.0, 5.0, 5.0);
-                earthGroup.add(missile);
-
-            },
-            // called while loading is progressing
-            function (xhr) {
-
-                // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
-
-            },
-            // called when loading has errors
-            function (error) {
-
-                console.log('An error happened');
-
-            }
-        );
-
-        manager.onStart = function (url, itemsLoaded, itemsTotal) {
-            // console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
-        };
-
-        manager.onLoad = function () {
-            scene.add(textGroup);
-            theatre();
-
-            // project.ready.then(() => {
-            //     console.log("project is ready");
-            //     clock.start();
-            //     // sheet.sequence.play({ iterationCount: Infinity });
-            //     animate();
-            // });
-
-            animate();
-            
-        };
-
-
-        manager.onProgress = function (url, itemsLoaded, itemsTotal) {
-            // console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
-        };
-
-        manager.onError = function (url) {
-            console.log('There was an error loading ' + url);
-        };
-
         const texLoader = new THREE.TextureLoader();
 
         // load a resource
@@ -364,9 +289,11 @@ class App {
                     matcap: texture,
                 });
 
-                tubeMesh.material = matcapMat;
+                loadModels();
 
-                console.log("matcap loaded");
+                resourceLoaded();
+
+                // console.log("matcap loaded");
             },
 
             // onProgress callback currently not supported
@@ -378,151 +305,166 @@ class App {
             }
         );
 
+        // Load ISS
+        // loader.load(
+        //     // resource URL
+        //     import.meta.env.BASE_URL + 'models/iss.glb',
+        //     // called when the resource is loaded
+        //     function (gltf) {
+
+        //         iss = gltf.scene;
+
+        //         iss.scale.set(1, 1, 1);
+        //         const v = calcPosFromLatLonRad(39.18098718905343, 126.66405697335942, 637.1 + 40);
+        //         iss.position.set(v.x, v.y, v.z);
+        //         iss.renderOrder = 3;
+        //         earthGroup.add(iss);
+
+        //     },
+        //     // called while loading is progressing
+        //     function (xhr) {
+
+        //         // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+
+        //     },
+        //     // called when loading has errors
+        //     function (error) {
+
+        //         console.log('An error happened');
+
+        //     }
+        // );
+
         let earthTex;
 
-        const texture = Promise.all([texLoader.load( import.meta.env.BASE_URL + 'assets/2_no_clouds_8k.jpeg'), texLoader.load(import.meta.env.BASE_URL + 'assets/2k_earth_specular_map 1.jpg'), texLoader.load(import.meta.env.BASE_URL + 'assets/elev_bump_8k.jpeg')], (resolve, reject) => {
-            resolve(texture);
-        }).then(result => {
-            console.log("earth texs loaded");
-            // result in array of textures
-            earthGeo = new THREE.SphereGeometry(637.1, 64, 32);
-            const wireframe = new THREE.WireframeGeometry( earthGeo );
-            const line = new THREE.LineSegments( wireframe );
-            line.material.depthTest = false;
-            line.material.opacity = 0.25;
-            line.material.transparent = true;
+        const ktx2Loader = new KTX2Loader();
+        ktx2Loader.setTranscoderPath(import.meta.env.BASE_URL + 'js/');
+        ktx2Loader.detectSupport(renderer);
+        ktx2Loader.load( import.meta.env.BASE_URL + 'assets/world_minimal.ktx2', function ( texture ) {
 
-            // earthGroup.add( line );
-            // const tempEarthPlane = new THREE.SphereGeometry(637.1, 64, 32);
-            earthPlane = new THREE.PlaneGeometry(637.1, 637.1/2, 64, 64);
-            // Pyongyang location UV
-            // y 0.71767215105
-            // x 0.84906682492
-            // let earthMat = new THREE.MeshBasicMaterial({color: 0xffccaa});
+            // console.log("earth texs loaded", texture);
+            let earthGeo = new THREE.SphereGeometry(637.1, 64, 32);
 
-            // create an empty array to  hold targets for the attribute we want to morph
-            // morphing positions and normals is supported
-            earthPlane.morphAttributes.position = [];
-            
-
-            var sphereFormation = [];
-            var uvs = earthPlane.attributes.uv;
-            var uv = new THREE.Vector2();
-            var t = new THREE.Vector3();
-            for (let i = 0; i < uvs.count; i++) {
-            uv.fromBufferAttribute(uvs, i);
-            //console.log(uv.clone())
-            t.setFromSphericalCoords(
-                637.1,
-                Math.PI * (1 - uv.y),
-                Math.PI * (uv.x - 0.5) * 2
-            )
-            sphereFormation.push(t.x, t.y, t.z);
-            }
-            earthPlane.morphAttributes.position[0] = new THREE.Float32BufferAttribute(sphereFormation, 3);
-
-            console.log('earthplane morph attributes');
-            console.log(earthPlane.morphAttributes);
-
-            const earthMap = result[0];
+            const earthMap = texture;
+            earthMap.wrapT = THREE.RepeatWrapping;
+            earthMap.repeat.y = - 1;
             earthMap.encoding = THREE.sRGBEncoding;
-            earthMap.flipX = true;
-            earthMap.flipY = false;
-            earthMap.wrapS = THREE.RepeatWrapping;
-            earthMap.repeat.x = - 1;
-
-            let earthMat = new THREE.MeshBasicMaterial({
-                // color: 0x666666,
-                map: earthMap,
-                morphTargtes: true,
-                side: THREE.FrontSide
-            });
-
-            const earthTMap = result[0];
-            earthTMap.flipX = true;
-            earthTMap.flipY = true;
-            earthTMap.wrapS = THREE.RepeatWrapping;
-            earthTMap.repeat.x = 1;
-            earthTMap.encoding = THREE.sRGBEncoding;
-
-            let earthTMat = new THREE.MeshPhysicalMaterial({
+            let earthMat = new THREE.MeshStandardMaterial({
                 color: 0x666666,
-                map: earthTMap, 
-                roughness: 0.7,
-                metalness: 0.5
+                map: earthMap, 
+                roughness: 0.8,
+                metalness: 0.6
             });
 
-            
-            // earthMat.shading = THREE.SmoothShading;
-            // earthPlane.computeBoundingSphere(); 
-            earthMat.dithering = true
-            earth = new THREE.Mesh(earthPlane, earthMat);
-            // earth.rotation.set((90) * Math.PI / 180, (0) * Math.PI / 180, 0);
-            let quaternion = new THREE.Quaternion();
-            quaternion.setFromAxisAngle( new THREE.Vector3( 0, 1, 0 ), (180) * Math.PI / 180 );
-            earth.applyQuaternion( quaternion );
-            quaternion.setFromAxisAngle( new THREE.Vector3( 0, 0, 1 ), (180) * Math.PI / 180 );
-            earth.applyQuaternion( quaternion );
-            quaternion.setFromAxisAngle( new THREE.Vector3( 1, 0, 0 ), (90+40.2868681868) * Math.PI / 180 );
-            earth.applyQuaternion( quaternion );
-            quaternion.setFromAxisAngle( new THREE.Vector3( 0, 1, 0 ), (90+32.212711943 + 90) * Math.PI / 180 );
-            earth.applyQuaternion( quaternion );
-            quaternion.setFromAxisAngle( new THREE.Vector3( 0, 0, 1 ), 0 * Math.PI / 180 );
-            earth.applyQuaternion( quaternion );
-            earthRot = earth.rotation.clone();
-            // earth.rotation.set(-(90+40.2868681868) * Math.PI / 180, -(90+32.212711943 + 90) * Math.PI / 180, 0);
-            const cp = calcPosFromLatLonRad(39.18098718905343, 125.66405697335942, 637.1);
-            earth.position.set(cp.x, cp.y, cp.z);
-            earth.renderOrder = 1;
+            earthMat.dithering = true;
+            earth = new THREE.Mesh(earthGeo, earthMat);
+            earth.position.set(0, 0, 0);
 
-            earthT = new THREE.Mesh(earthGeo, earthTMat);
-            earthT.position.set(0, 0, 0);
-
-            // adjusted manually to top-center region between NK and Japan
-            // midpoint between them 40.2868681868, 132.212711943
-            earthGroup.add(earthT);
+            earthGroup.rotation.set((90 - 40.2868681868) * Math.PI / 180, (90 - 132.212711943) * Math.PI / 180, 0);
             earthGroup.add(earth);
             scene.add(earthGroup);
+
+            initMarkers();
+
+            resourceLoaded();
+        
+        }, function () {
+        
+            console.log( 'onProgress' );
+        
+        }, function ( e ) {
+        
+            console.error( e );
+        
+        } );
+
+        // const texture = Promise.all([texLoader.load( import.meta.env.BASE_URL + 'assets/world_minimal.png'), texLoader.load(import.meta.env.BASE_URL + 'assets/2k_earth_specular_map 1.jpg'), texLoader.load(import.meta.env.BASE_URL + 'assets/elev_bump_8k.jpeg')], (resolve, reject) => {
+        //     resolve(texture);
+        // }).then(result => {
+        //     console.log("earth texs loaded");
+        //     // result in array of textures
+        //     let earthGeo = new THREE.SphereGeometry(637.1, 64, 32);
+        //     // let earthMat = new THREE.MeshBasicMaterial({color: 0xffccaa});
+
+        //     const earthMap = result[0]
+        //     earthMap.encoding = THREE.sRGBEncoding;
+        //     // earthMap.anisotropy = 16;
+        //     // earthMap.generateMipmaps = false;
+        //     let earthMat = new THREE.MeshPhysicalMaterial({
+        //         color: 0x666666,
+        //         map: earthMap, 
+        //         roughness: 0.8,
+        //         metalness: 0.6
+        //     });
+        //     earthMat.map.magFilter = THREE.LinearFilter;
+        //     // earthMat.map.generateMipmaps = false;
+        //     earthMat.map.minFilter = THREE.LinearMipMapLinearFilter;
+        //     earthMat.needsUpdate = true;
+
+        //     // earthMat.shading = THREE.SmoothShading;
+        //     earthMat.dithering = true;
+        //     earth = new THREE.Mesh(earthGeo, earthMat);
+        //     earth.position.set(0, 0, 0);
+
+        //     // ---------------- To implement LOD ------------------------
+        //     // const lod = new THREE.LOD();
+        //     // //Create spheres with 3 levels of detail and create new LOD levels for them
+        //     // for( let i = 0; i < 5; i++ ) {
+
+        //     //     let earthGeo = new THREE.IcosahedronGeometry( 637.1, 5 - i )
+
+        //     //     const earthMesh = new THREE.Mesh( earthGeo, earthMat );
+
+        //     //     earthMesh.position.set(0, 0, 0);
+                
+        //     //     lod.addLevel( earthMesh, i * 750 );
+
+        //     // }
+
+        //     // adjusted manually to top-center region between NK and Japan
+        //     // midpoint between them 40.2868681868, 132.212711943
+        //     earthGroup.rotation.set((90 - 40.2868681868) * Math.PI / 180, (90 - 132.212711943) * Math.PI / 180, 0);
+        //     earthGroup.add(earth);
+        //     scene.add(earthGroup);
+
+        //     initMarkers();
+
+        //     // const customMaterial = new THREE.ShaderMaterial( 
+        //     //     {
+        //     //         uniforms: 
+        //     //         { 
+        //     //             "c":   { type: "f", value: 0.5 * 1.0 },
+        //     //             "p":   { type: "f", value: 15 * 1.0 },
+        //     //             glowColor: { type: "c", value: new THREE.Color(0x00aaff) },
+        //     //             viewVector: { type: "v3", value: animatingCamera.position }
+        //     //         },
+        //     //         vertexShader:   document.getElementById( 'vertexShader'   ).textContent,
+        //     //         fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
+        //     //         side: THREE.BackSide,
+        //     //         blending: THREE.AdditiveBlending,
+        //     //         transparent: true
+        //     //     }   );
+
+        //     // let dummyMaterial = new THREE.MeshBasicMaterial({color: 0xffff00});
             
-            earthGroup.rotation.set((90 - 40.2868681868) * Math.PI / 180, (90 - 132.212711943) * Math.PI / 180, 0);
-            console.log(earthGroup);
+        //     // earthGlow = new THREE.Mesh(new THREE.SphereGeometry(637.1, 64, 64), customMaterial);
+        //     // earthGlow.position.set(0, -637.1, 0);
+        //     // earthGlow.scale.multiplyScalar(1.1);
+        //     // earthGlow.geometry.computeVertexNormals(true);
+        //     // earthGroup.add(earthGlow);
+        // });
 
-            // const customMaterial = new THREE.ShaderMaterial( 
-            //     {
-            //         uniforms: 
-            //         { 
-            //             "c":   { type: "f", value: 0.5 * 1.0 },
-            //             "p":   { type: "f", value: 15 * 1.0 },
-            //             glowColor: { type: "c", value: new THREE.Color(0x00aaff) },
-            //             viewVector: { type: "v3", value: animatingCamera.position }
-            //         },
-            //         vertexShader:   document.getElementById( 'vertexShader'   ).textContent,
-            //         fragmentShader: document.getElementById( 'fragmentShader' ).textContent,
-            //         side: THREE.BackSide,
-            //         blending: THREE.AdditiveBlending,
-            //         transparent: true
-            //     }   );
-
-            // let dummyMaterial = new THREE.MeshBasicMaterial({color: 0xffff00});
-            
-            // earthGlow = new THREE.Mesh(new THREE.SphereGeometry(637.1, 64, 64), customMaterial);
-            // earthGlow.position.set(0, -637.1, 0);
-            // earthGlow.scale.multiplyScalar(1.1);
-            // earthGlow.geometry.computeVertexNormals(true);
-            // earthGroup.add(earthGlow);
-        });
-
-        // load text objects
+        // load text object
         const fntLoader = new FontLoader();
 
         fntLoader.load( import.meta.env.BASE_URL + 'assets/Knowledge Medium_Regular.json', function ( font ) {
             knowledgeFont = font;
-            generateText(font, "North Korea", 4, calcPosFromLatLonRad(37.81689349316444, 126.22657884591786, 640), earthGroup);
-            generateText(font, "Pyongyang", 3, calcPosFromLatLonRad(39.036170458253565, 124.75861353308592, 640), earthGroup);
-            generateText(font, "Japan", 8, calcPosFromLatLonRad(35.772943512663176, 137.8048990566746, 640), earthGroup);
-            generateText(font, "Hokkaido", 3, calcPosFromLatLonRad(42.78343327772553, 141.17912575432618, 640), earthGroup);
-            generateText(font, "International\nSpace Station", 2, calcPosFromLatLonRad(39.8, 125.0, 637.1 + 42 ), earthGroup);
-            generateText(font, "height", 3, points[0], earthGroup);
+            // generateText(font, "International\nSpace Station", 12, calcPosFromLatLonRad(39.8, 125.0, 637.1 + 42 ), earthGroup);
+            generateText(font, "Pyongyang", 12, calcPosFromLatLonRad(39.036170458253565, 124.75861353308592, 640), earthGroup);
+            generateText(font, "North Korea", 20, calcPosFromLatLonRad(39.81689349316444, 126.22657884591786, 640), earthGroup);
+            generateText(font, "Hokkaido", 12, calcPosFromLatLonRad(42.78343327772553, 141.17912575432618, 640), earthGroup);
+            generateText(font, "Japan", 20, calcPosFromLatLonRad(35.772943512663176, 137.8048990566746, 640), earthGroup);
+            generateText(font, "height", 12, points[0], earthGroup);
         } );
 
         // // load a resource
@@ -566,12 +508,6 @@ class App {
         circle.lookAt(new THREE.Vector3(0, 0, 0));
         // scene.add(circle);
 
-        renderer = new THREE.WebGLRenderer({
-            powerPreference: "high-performance",
-            antialias: true,
-            stencil: false,
-            depth: false
-        });
         // renderer.toneMappingExposure = Math.pow(0.7, 1.0);
         renderer.outputEncoding = THREE.sRGBEncoding;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -584,6 +520,13 @@ class App {
         renderer.setClearColor(0xffffff);
         renderer.setPixelRatio(window.devicePixelRatio);
         document.body.appendChild(renderer.domElement);
+
+        // CSS renderer
+        labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize( window.innerWidth, window.innerHeight );
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        document.body.appendChild( labelRenderer.domElement );
 
         //HDRI LOADER
         // var envmaploader = new THREE.PMREMGenerator(renderer);
@@ -610,17 +553,76 @@ class App {
         effectFXAA.uniforms.resolution.value.set( 1/ window.innerWidth, 1 / window.innerHeight);
 
         const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
-        bloomPass.threshold = 0.60;
+        bloomPass.threshold = 0.80;
         bloomPass.strength = 0.5;
         bloomPass.radius = 1.0;
         bloomPass.renderToScreen = true;
 
         composer = new EffectComposer(renderer);
         composer.addPass(renderScene);
-        // composer.addPass(effectFXAA);
-        // composer.addPass(bloomPass);
+        composer.addPass(effectFXAA);
+        composer.addPass(bloomPass);
     }
 
+}
+
+function loadModels() {
+    // Load Hwasong
+    loader.load(
+        // resource URL
+        import.meta.env.BASE_URL + 'models/missile.glb',
+        // called when the resource is loaded
+        function (gltf) {
+
+            missile = gltf.scene;
+
+            missile.traverse((o) => {
+                if (o.isMesh) o.material = matcapMat;
+            });
+
+            missile.position.set(0, 0, 0);
+            missile.scale.set(5.0, 5.0, 5.0);
+            missile.renderOrder = 3;
+            earthGroup.add(missile);
+
+        },
+        // called while loading is progressing
+        function (xhr) {
+
+            // console.log( ( xhr.loaded / xhr.total * 100 ) + '% loaded' );
+
+        },
+        // called when loading has errors
+        function (error) {
+
+            console.log('An error happened');
+
+        }
+    );
+
+    manager.onStart = function (url, itemsLoaded, itemsTotal) {
+        // console.log('Started loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+    };
+
+    manager.onLoad = function () {
+        scene.add(textGroup);
+        theatre();
+
+        project.ready.then(() => {
+            console.log("project is ready");
+            // clock.start();
+            resourceLoaded();
+        });            
+    };
+
+
+    manager.onProgress = function (url, itemsLoaded, itemsTotal) {
+        // console.log('Loading file: ' + url + '.\nLoaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.');
+    };
+
+    manager.onError = function (url) {
+        console.log('There was an error loading ' + url);
+    };
 }
 
 function calcPosFromLatLonRad(lat, lon, rad) {
@@ -641,7 +643,7 @@ function theatre() {
         position: types.compound({
             x: types.number(animatingCamera.position.x, { range: [-1000, 1000] }),
             y: types.number(animatingCamera.position.y, { range: [-800, 1200] }),
-            z: types.number(animatingCamera.position.z, { range: [0, 2000] })
+            z: types.number(animatingCamera.position.z, { range: [-100, 2000] })
         }),
         rotation: types.compound({
             x: types.number(animatingCamera.rotation.x, { range: [-2, 2] }),
@@ -685,8 +687,6 @@ function theatre() {
         }),
     });
 
-    // earthGroup position set to y: 184.55696202531647 for north korea for spherical geo
-    // cameraObj x: -53.9 y: 662.416, z: 4 rotation x: -0.576
     earthObj.onValuesChange((values) => {
         const {x, y, z, o} = values.rotation;
 
@@ -696,7 +696,6 @@ function theatre() {
         const theta = (y) * ( Math.PI / 180 );
         const zT = z * Math.PI / 180;
 
-        // earth.rotation.set(-(90+40.2868681868) * Math.PI / 180, -(90+32.212711943 + 90) * Math.PI / 180, 0);
         earthGroup.rotation.set((90 - 40.2868681868) * Math.PI / 180, (90 - 132.212711943) * Math.PI / 180, 0);
 
         // x-axis rotation
@@ -718,6 +717,95 @@ function theatre() {
     });
 }
 
+function resourceLoaded() {
+    resourcesLoaded += 1;
+
+    if(resourcesLoaded === 3) {
+            console.log('now playing');
+            sheet.sequence.play({iterationCount: 1, range: [0, 7] });
+            animate();
+    }
+}
+
+function initMarkers() {
+    const rad = 637.1;
+    const markerPoints = [calcPosFromLatLonRad(39.18098718905343, 125.66405697335942, 637.1), calcPosFromLatLonRad(41.39274918458668, 138.76136691354355, 637.1)];
+
+    // <Markers>
+    const markerCount = markerPoints.length;
+    let markerInfo = []; // information on markers
+    let gMarker = new THREE.PlaneGeometry(12, 12);
+    let mMarker = new THREE.MeshBasicMaterial({
+    color: 0x111111,
+    onBeforeCompile: (shader) => {
+        shader.uniforms.time = globalUniforms.time;
+        shader.vertexShader = `
+            attribute float phase;
+        varying float vPhase;
+        ${shader.vertexShader}
+        `.replace(
+        `#include <begin_vertex>`,
+        `#include <begin_vertex>
+            vPhase = phase; // de-synch of ripples
+        `
+        );
+        //console.log(shader.vertexShader);
+        shader.fragmentShader = `
+            uniform float time;
+        varying float vPhase;
+            ${shader.fragmentShader}
+        `.replace(
+        `vec4 diffuseColor = vec4( diffuse, opacity );`,
+        `
+        vec2 lUv = (vUv - 0.5) * 2.;
+        float val = 0.;
+        float lenUv = length(lUv);
+        val = max(val, 1. - step(0.25, lenUv)); // central circle
+        val = max(val, step(0.4, lenUv) - step(0.5, lenUv)); // outer circle
+        
+        float tShift = fract(time * 1.0 + vPhase);
+        val = max(val, step(0.4 + (tShift * 0.6), lenUv) - step(0.5 + (tShift * 0.5), lenUv)); // ripple
+        
+        if (val < 0.5) discard;
+        
+        vec4 diffuseColor = vec4( diffuse, opacity );`
+        );
+        //console.log(shader.fragmentShader)
+    }
+    });
+    mMarker.defines = { USE_UV: " " }; // needed to be set to be able to work with UVs
+    let markers = new THREE.InstancedMesh(gMarker, mMarker, markerCount);
+
+    let dummy = new THREE.Object3D();
+    let phase = [];
+    for (let i = 0; i < markerCount; i++) {
+    // dummy.position.randomDirection().setLength(rad + 5);
+    // const posDummy = calcPosFromLatLonRad(39.036170458253565, 124.75861353308592, 640);
+    dummy.position.set(markerPoints[i].x, markerPoints[i].y, markerPoints[i].z);
+    // console.log(i + " dummy pos");
+    // console.log(dummy.position);
+    dummy.lookAt(dummy.position.clone().setLength(rad + 10));
+    dummy.updateMatrix();
+    markers.setMatrixAt(i, dummy.matrix);
+    phase.push(Math.random());
+
+    markerInfo.push({
+        id: i + 1,
+        mag: 1,
+        crd: dummy.position.clone()
+    });
+    }
+    gMarker.setAttribute(
+    "phase",
+    new THREE.InstancedBufferAttribute(new Float32Array(phase), 1)
+    );
+
+    earthGroup.add(markers);
+    // console.log('earthGrp');
+    // console.log(earthGroup);
+    // </Markers>
+}
+
 function onWindowResize() {
 
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -728,12 +816,25 @@ function onWindowResize() {
 }
 
 function animate() {
+    const looptime = 20;
     // controls.update();
-    requestAnimationFrame(animate);
-    render();
 
-    // let dist = land.position.distanceTo(splineCamera.position);
-    // skyColorTransition(dist);
+    if (sheet.sequence.position >= 3 && clock.elapsedTime == 0) {
+        clock.start();
+    }
+
+    if(clock.elapsedTime >= 16 && playFlag) {
+        sheet.sequence.play({iterationCount: 1, range: [7, 12]});
+        playFlag = false;
+    }
+
+    if(((clock.elapsedTime + 0.01) / looptime) > 1) {
+        clock.stop();
+    }
+
+    // console.log(scene);
+    render();
+    requestAnimationFrame(animate);
 }
 
 function ease(x, m = 1) {
@@ -771,23 +872,42 @@ function reset() {
 }
 
 function generateText(font, message, fontSize, position, parent, name=message) {
-    const shapes = font.generateShapes( message, fontSize );
+    // const shapes = font.generateShapes( message, fontSize );
 
-    const textGeo = new THREE.ShapeGeometry( shapes );
+    // const textGeo = new THREE.ShapeGeometry( shapes );
 
-    textGeo.computeBoundingBox();
+    // textGeo.computeBoundingBox();
 
-    const centerOffset = - 0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
+    // const centerOffset = - 0.5 * ( textGeo.boundingBox.max.x - textGeo.boundingBox.min.x );
 
-    const textMat = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide});
+    // const textMat = new THREE.MeshBasicMaterial({color: 0xffffff, side: THREE.DoubleSide});
 
-    const textMesh = new THREE.Mesh( textGeo, textMat );
+    // const textMesh = new THREE.Mesh( textGeo, textMat );
 
-    textMesh.position.set(centerOffset + position.x, position.y, position.z);
+    const textContainer = document.createElement( 'div' );
+    textContainer.style.filter = 'drop-shadow(0px 2px 4px black)';
+    const labelContainer = document.createElement( 'div' );
+    textContainer.appendChild(labelContainer);
+    labelContainer.style.filter = 'drop-shadow(0px 2px 4px black)';
+    labelContainer.className = 'label';
+    labelContainer.textContent = (message === 'height') ? '' : message;
+    labelContainer.style.marginTop = '-1em';
+    labelContainer.style.fontSize = fontSize + 'px';
+    const label = new CSS2DObject( textContainer );
+    label.name = 'text_' + name;
+    if(label.name == 'text_height')
+        labelContainer.style.marginLeft = '6em';
+    label.position.set( position.x, position.y, position.z );
+    parent.add( label );
+    
+    // textMesh.position.set(centerOffset + position.x, position.y, position.z);
 
-    textMesh.name = "text_" + name;
+    // textMesh.name = "text_" + name;
 
-    parent.add(textMesh);
+    // textMesh.renderOrder = 2;
+
+    // parent.add(textMesh);
+
 }
 
 window.onkeydown = ((e) => {
@@ -796,27 +916,19 @@ window.onkeydown = ((e) => {
 });
 
 function render() {
-
-    // animate camera along spline
-    // console.log(earth.morphTargetInfluences[0]);
-    const multiplier = Math.sin(clock.getElapsedTime()) * 0.5 + 0.5;
-    const cp = calcPosFromLatLonRad(39.18098718905343, 125.66405697335942, 637.1);
-    earth.position.set(cp.x * (1 - multiplier), cp.y * (1 - multiplier), cp.z * (1 - multiplier));
-    // earth.rotation.set(0, Math.PI * multiplier, 0);
-    // earthGroup.rotation.set((90 - 40.2868681868) * Math.PI / 180, (90 - 132.212711943) * Math.PI / 180, 0);
-    earth.rotation.set(earthRot.x + ((90 - 40.2868681868) * Math.PI / 180 * 0), earthRot.y - ((90 - 132.212711943) * Math.PI / 180 * 0), earthRot.z - Math.PI / 8);
-    earth.morphTargetInfluences[0] = multiplier;
-    // earth.morphTargetInfluences[0] = 0.1;
+    // to animate markers
+    globalUniforms.time.value = waveClock.getElapsedTime();
 
     const time = clock.getElapsedTime();
     const looptime = 20 * 1;
-    let ti = (time % looptime) / looptime;
+    let ti = (time) / looptime;
     let t = easingCurve(ti);
 
     // render trailing line
-    renderTrail(t);
-
-    renderHeightTickr(t);
+    if (clock.elapsedTime > 0) {
+        renderTrail(t);
+        renderHeightTickr(t);
+    }
 
     tubeGeometry.parameters.path.getPointAt(t, position);
     position.multiplyScalar(1);
@@ -849,10 +961,10 @@ function render() {
     position.add(normal.clone().multiplyScalar(offset));
     missilePosition.add(missileNormal.clone().multiplyScalar(0));
 
-    splineCamera.position.copy(position);
+    // splineCamera.position.copy(position);
     // missile.position.copy(missilePosition);
     missile.position.set(points[pick].x, points[pick].y, points[pick].z);
-    birdViewCamera.position.copy(position);
+    // birdViewCamera.position.copy(position);
 
     // using arclength for stablization in look ahead
 
@@ -865,22 +977,25 @@ function render() {
 
     // camera orientation 2 - up orientation via normal
 
-    if (!PARAMS.lookAhead) lookAt.copy(position).add(direction);
-    if (flagVerticalCamera)
-        splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt(t + 0.001), normal);
-    else if (flagDefaultCamera)
-        splineCamera.matrix.lookAt(splineCamera.position, lookAt, normal);
-    else if (flagBirdEyeView)
-        splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt(t + 1), new THREE.Vector3(0, 1, 0));
+    // if (!PARAMS.lookAhead) lookAt.copy(position).add(direction);
+    // if (flagVerticalCamera)
+    //     splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt(t + 0.001), normal);
+    // else if (flagDefaultCamera)
+    //     splineCamera.matrix.lookAt(splineCamera.position, lookAt, normal);
+    // else if (flagBirdEyeView)
+    //     splineCamera.matrix.lookAt(splineCamera.position, tubeGeometry.parameters.path.getPointAt(t + 1), new THREE.Vector3(0, 1, 0));
 
-    splineCamera.quaternion.setFromRotationMatrix(splineCamera.matrix);
+    // splineCamera.quaternion.setFromRotationMatrix(splineCamera.matrix);
     missile.matrix.lookAt(missile.position, missileLookAt, missileNormal);
     missile.quaternion.setFromRotationMatrix(missile.matrix);
 
-    if (ti >= 1.0)
-        reset();
+    // to reset animation
+    // if (ti >= 1.0)
+    //     reset();
 
     composer.render();
+    // renderer.render(scene, animatingCamera);
+    labelRenderer.render( scene, animatingCamera );
 }
 
 function renderTrail(progress) {
@@ -895,7 +1010,7 @@ function renderTrail(progress) {
 
     for(let i = 0; i < pointBounds; i++) {
         lnPositions.push(points[i].x, points[i].y, points[i].z);
-        lnColor.setHSL(0.0, 1.0, 0.3);
+        lnColor.setHSL(0.1, 1.0, 0.5);
         colors.push(lnColor.r, lnColor.g, lnColor.b);
     }
 
@@ -929,13 +1044,21 @@ function renderHeightTickr(progress) {
     const currPosition = Math.floor(points.length * progress);
     const hPosition = points[currPosition].clone();
     // hPosition.z = 2;
-    // hPosition.x += 40;
-    generateText(knowledgeFont, parseInt(Math.sin(progress * Math.PI) * 6248).toString() + ' kms', 10, hPosition, earthGroup, 'height');
+    // hPosition.x += 100;
+    let tickrText = "";
+    if (progress < 0.96 && progress > 0) {
+        tickrText = parseInt(Math.sin(progress * Math.PI) * 6248).toString() + ' kms';
+    }
+    generateText(knowledgeFont, tickrText, 12, hPosition, earthGroup, 'height');
 
+    // console.log(earthGroup.children);
     // make all labels look at camera
     earthGroup.children.forEach(child => {
         if(child.name.includes('text_')) {
+            // const cameraPosition = animatingCamera.position.clone();
             child.lookAt(animatingCamera.position);
+            // child.rotation.setFromRotationMatrix( animatingCamera.matrix );
+            // child.lookAt(new THREE.Vector3(cameraPosition.x, cameraPosition.y + 500, cameraPosition.z + 200));
         }
     });
 }
