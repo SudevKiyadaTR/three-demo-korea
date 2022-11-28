@@ -19,7 +19,8 @@ import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader.js';
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js';
 import BazierEasing from 'bezier-easing';
 
-const easingCurve = BazierEasing(0.00, 0.40, 1.00, 0.70);
+const easingCurvePre = BazierEasing(0.70, 0.00, 0.90, 1.00);
+const easingCurvePost = BazierEasing(0.20, 0.00, 1.00, 1.00);
 const bgColor = 0x000000;
 const sunColor = 0xffee00;
 const screenSpacePosition = new THREE.Vector3();
@@ -47,6 +48,7 @@ const earthGroup = new THREE.Group();
 let playFlag = true;
 let resourcesLoaded = 0;
 const looptime = 30;
+let apogeeFlag = false;
 
 const manager = new THREE.LoadingManager();
 
@@ -315,7 +317,7 @@ function loadModels() {
     // Load Hwasong
     loader.load(
         // resource URL
-        import.meta.env.BASE_URL + 'models/missile.glb',
+        import.meta.env.BASE_URL + 'models/untitled.glb',
         // called when the resource is loaded
         function (gltf) {
 
@@ -329,6 +331,7 @@ function loadModels() {
             missile.scale.set(5.0, 5.0, 5.0);
             missile.renderOrder = 3;
             missile.lookAt(new THREE.Vector3(0, 100, 0));
+            missile.visible = false;
             earthGroup.add(missile);
 
         },
@@ -460,7 +463,7 @@ function initMarkers() {
     // <Markers>
     const markerCount = markerPoints.length;
     let markerInfo = []; // information on markers
-    let gMarker = new THREE.PlaneGeometry(12, 12);
+    let gMarker = new THREE.PlaneGeometry(8, 8);
     let mMarker = new THREE.MeshBasicMaterial({
     color: 0x111111,
     onBeforeCompile: (shader) => {
@@ -487,10 +490,10 @@ function initMarkers() {
         float val = 0.;
         float lenUv = length(lUv);
         val = max(val, 1. - step(0.25, lenUv)); // central circle
-        val = max(val, step(0.4, lenUv) - step(0.5, lenUv)); // outer circle
+        // val = max(val, step(0.2, lenUv) - step(0.5, lenUv)); // outer circle
         
         float tShift = fract(time * 1.0 + vPhase);
-        val = max(val, step(0.4 + (tShift * 0.6), lenUv) - step(0.5 + (tShift * 0.5), lenUv)); // ripple
+        val = max(val, step(0.0 + (tShift * 0.6), lenUv) - step(0.1 + (tShift * 0.5), lenUv)); // ripple
         
         if (val < 0.5) discard;
         
@@ -543,7 +546,7 @@ function onWindowResize() {
 
 function animate() {
 
-    if (sheet.sequence.position >= 2.75 && clock.elapsedTime == 0) {
+    if (sheet.sequence.position >= 0 && clock.elapsedTime == 0) {
         clock.start();
     }
 
@@ -556,7 +559,6 @@ function animate() {
         missile.visible = false;
         clock.stop();
     }
-
     
     render();
     animateCSSText();
@@ -595,6 +597,9 @@ function generateText(font, message, fontSize, position, parent, name=message) {
 
     if(label.name == 'text_height')
         labelContainer.style.marginLeft = '6em';
+
+    if(label.name == 'text_Apogee')
+        labelContainer.style.marginTop = '-2em';
     
     label.position.set( position.x, position.y, position.z );
     parent.add( label );
@@ -608,10 +613,18 @@ window.onkeydown = ((e) => {
 function render() {
     // to animate markers
     globalUniforms.time.value = waveClock.getElapsedTime();
+    let ti = 0, t = 0;
 
     const time = clock.getElapsedTime();
-    let ti = (time) / looptime;
-    let t = easingCurve(ti);
+
+    if(time < looptime/2 ) {
+        ti = (time) / (looptime / 2);
+        t = easingCurvePre((ti)) / 2;
+    } else {
+        ti = (time - (looptime/2)) / (looptime / 2);
+        t = easingCurvePost(ti) / 2 + 0.5;
+    }
+    
 
     // render trailing line
     if (clock.elapsedTime > 0) {
@@ -629,7 +642,7 @@ function render() {
     const segments = tubeGeometry.tangents.length;
     const pickt = t * segments;
     const pick = Math.floor(pickt);
-    const pickNext = (pick) % segments;
+    const pickNext = (pick + 1) % segments;
 
     missileBinormal.subVectors(tubeGeometry.binormals[pickNext], tubeGeometry.binormals[pick]);
     missileBinormal.multiplyScalar(pickt - pick).add(tubeGeometry.binormals[pick]);
@@ -642,12 +655,15 @@ function render() {
 
     missile.position.set(points[pick].x, points[pick].y, points[pick].z);
 
-    tubeGeometry.parameters.path.getPointAt((t + 10 / tubeGeometry.parameters.path.getLength()) % 1, missileLookAt);
+    tubeGeometry.parameters.path.getPointAt( ((pick + 2) / segments) % 1, missileLookAt );
     missileLookAt.multiplyScalar(1);
 
     if(t > 0) {
         missile.matrix.lookAt(missile.position, missileLookAt, missileNormal);
         missile.quaternion.setFromRotationMatrix(missile.matrix);
+        
+        if(!missile.visible && t < 0.2)
+            missile.visible = true;
     }
 
     // to reset animation
@@ -710,6 +726,11 @@ function renderHeightTickr(progress) {
     }
 
     generateText(knowledgeFont, tickrText, 12, hPosition, earthGroup, 'height');
+
+    if(Math.sin(progress * Math.PI) * 6248 > 6247 && !apogeeFlag) {
+        generateText(knowledgeFont, '6248.5 kms', 12, hPosition, earthGroup, 'Apogee');
+        apogeeFlag = true;
+    }
 }
 
 export default App;
